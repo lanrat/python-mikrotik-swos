@@ -33,7 +33,9 @@ pip install -r requirements.txt
 
 ## Compatibility
 
+- SwOS Lite 2.17
 - SwOS Lite 2.18
+- SwOS Lite 2.19
 - SwOS Lite 2.20
 
 ## Tested Hardware

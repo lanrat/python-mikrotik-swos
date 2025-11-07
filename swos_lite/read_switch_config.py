@@ -18,7 +18,7 @@ Example:
 
 import sys
 import argparse
-from swos_lite_api import (
+from swos_lite import (
     get_system_info,
     get_links,
     get_poe,

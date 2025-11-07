@@ -4,8 +4,8 @@ Python library and tools for managing MikroTik SwOS Lite switches (version 2.20+
 
 ## Components
 
-- **swos_lite_api.py**: Python library for reading/writing switch configuration
-- **read_switch_config.py**: CLI tool for displaying configuration
+- **swos_lite package**: Python library for reading/writing switch configuration
+- **swos-lite-config**: CLI tool for displaying configuration
 - **Ansible module**: Declarative configuration management (see [ANSIBLE.md](ANSIBLE.md))
 
 ## Capabilities
@@ -21,6 +21,11 @@ Python library and tools for managing MikroTik SwOS Lite switches (version 2.20+
 
 ## Installation
 
+```bash
+pip install swos-lite
+```
+
+Or for development:
 ```bash
 pip install -r requirements.txt
 ```
@@ -43,16 +48,16 @@ pip install -r requirements.txt
 
 ```bash
 # Display configuration
-python read_switch_config.py 192.168.1.7 admin ""
+swos-lite-config 192.168.1.7 admin ""
 
 # Save to file
-python read_switch_config.py 192.168.1.7 admin "" > backup.txt
+swos-lite-config 192.168.1.7 admin "" > backup.txt
 ```
 
 ### Python API
 
 ```python
-from swos_lite_api import get_system_info, set_port_config
+from swos_lite import get_system_info, set_port_config
 
 url = "http://192.168.1.7"
 system = get_system_info(url, "admin", "")
@@ -65,12 +70,27 @@ See module docstrings for complete API documentation.
 
 ### Ansible
 
+**Setup:**
+
+1. Install the Python package:
+   ```bash
+   pip install swos-lite
+   ```
+
+2. Copy the module to your playbook's library directory:
+   ```bash
+   mkdir -p library
+   cp ansible/swos_lite.py library/
+   ```
+
+**Usage:**
+
 ```bash
 ansible-playbook apply_config.yml         # Apply configuration
 ansible-playbook apply_config.yml --check # Preview changes
 ```
 
-See [ANSIBLE.md](ANSIBLE.md) for details.
+See [ANSIBLE.md](ANSIBLE.md) for complete documentation and examples.
 
 ## API Functions
 
@@ -82,7 +102,7 @@ All functions take `(url, username, password, ...)` parameters.
 Read functions return lists of dictionaries with configuration data.
 Write functions take port_number and optional setting parameters (except `set_snmp()` which sets global config).
 
-See docstrings in swos_lite_api.py for detailed parameters and return values.
+See docstrings in the swos_lite module for detailed parameters and return values.
 
 ## Security
 
@@ -90,6 +110,18 @@ See docstrings in swos_lite_api.py for detailed parameters and return values.
 - Use on trusted networks only
 - Use Ansible Vault for password storage
 
-## License
+## Development
 
-See LICENSE file for details.
+### Publishing a New Release
+
+1. Create and push a git tag:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+2. GitHub Actions automatically builds and publishes to PyPI
+
+## Credits
+
+Certain components of this codebase were created with the assistance of AI.

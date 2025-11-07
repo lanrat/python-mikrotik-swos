@@ -1,0 +1,35 @@
+---
+# Test configuration for verifying write functions
+# This file contains a minimal test configuration
+# Use with: ansible-playbook apply_config.yml -e "config_file=test_config.yml" --check
+
+system:
+  device_name: "MikroTik-SW1"
+  model: "CSS610-8P-2S+"
+
+# Test port name change on port 1
+ports:
+  - port: 1
+    name: "TestPort1"
+    enabled: true
+    auto_negotiation: true
+
+# Test PoE configuration change on port 1
+poe:
+  - port: 1
+    mode: "auto"
+    priority: 1
+    voltage_level: "auto"
+
+# Test LAG configuration on port 1
+lag:
+  - port: 1
+    mode: "passive"
+    group: 0
+
+# Test VLAN configuration on port 1
+port_vlans:
+  - port: 1
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1

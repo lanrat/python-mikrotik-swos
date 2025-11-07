@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+.venv/
+
+# IDE
+.claude/
+
+# Sensitive Data
+secrets.yml
+*.vault
+inventory.yml
+switch_config.yml
+
+# Backup/Output Files
+backup_*.txt
+switch_config.txt

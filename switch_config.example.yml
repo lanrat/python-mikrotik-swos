@@ -1,0 +1,239 @@
+---
+# MikroTik SwOS Lite Switch Configuration Example
+# Copy this file to switch_config.yml and customize for your switch
+
+# System settings (read-only, for documentation purposes)
+system:
+  device_name: "Switch-01"
+
+# SNMP Configuration
+snmp:
+  enabled: true
+  community: "public"
+  contact: ""
+  location: ""
+
+# Port/Link Configuration
+ports:
+  - port: 1
+    name: "Port1"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 2
+    name: "Port2"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 3
+    name: "Port3"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 4
+    name: "Port4"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 5
+    name: "Port5"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 6
+    name: "Port6"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 7
+    name: "Port7"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 8
+    name: "Port8"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 9
+    name: "SFP+1"
+    enabled: true
+    auto_negotiation: true
+
+  - port: 10
+    name: "SFP+2"
+    enabled: true
+    auto_negotiation: true
+
+# PoE Configuration
+poe:
+  - port: 1
+    mode: "auto"
+    priority: 1
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 2
+    mode: "auto"
+    priority: 2
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 3
+    mode: "auto"
+    priority: 3
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 4
+    mode: "auto"
+    priority: 4
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 5
+    mode: "auto"
+    priority: 5
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 6
+    mode: "auto"
+    priority: 6
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 7
+    mode: "auto"
+    priority: 7
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 8
+    mode: "auto"
+    priority: 8
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 9
+    mode: "auto"
+    priority: 1
+    voltage_level: "auto"
+    lldp_enabled: true
+
+  - port: 10
+    mode: "auto"
+    priority: 2
+    voltage_level: "auto"
+    lldp_enabled: true
+
+# LAG/LACP Configuration
+lag:
+  - port: 1
+    mode: "passive"
+    group: 0
+
+  - port: 2
+    mode: "passive"
+    group: 0
+
+  - port: 3
+    mode: "passive"
+    group: 0
+
+  - port: 4
+    mode: "passive"
+    group: 0
+
+  - port: 5
+    mode: "passive"
+    group: 0
+
+  - port: 6
+    mode: "passive"
+    group: 0
+
+  - port: 7
+    mode: "passive"
+    group: 0
+
+  - port: 8
+    mode: "passive"
+    group: 0
+
+  - port: 9
+    mode: "passive"
+    group: 0
+
+  - port: 10
+    mode: "passive"
+    group: 0
+
+# Per-Port VLAN Configuration
+port_vlans:
+  # Trunk port - accepts tagged traffic from all VLANs
+  - port: 1
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  # Access port - untagged traffic on VLAN 10
+  - port: 2
+    vlan_mode: "Enabled"
+    vlan_receive: "Only Untagged"
+    default_vlan_id: 10
+
+  # Access port - untagged traffic on VLAN 20
+  - port: 3
+    vlan_mode: "Enabled"
+    vlan_receive: "Only Untagged"
+    default_vlan_id: 20
+
+  # Default configuration for remaining ports
+  - port: 4
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  - port: 5
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  - port: 6
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  - port: 7
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  - port: 8
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  # SFP+ ports typically used as uplinks
+  - port: 9
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+  - port: 10
+    vlan_mode: "Optional"
+    vlan_receive: "Any"
+    default_vlan_id: 1
+
+# Global VLAN Configuration
+# Note: Member ports are represented as a list of port numbers
+vlans:
+  - vlan_id: 1
+    member_ports: [1, 4, 5, 6, 7, 8, 9, 10]
+
+  - vlan_id: 10
+    member_ports: [1, 2, 9, 10]
+
+  - vlan_id: 20
+    member_ports: [1, 3, 9, 10]

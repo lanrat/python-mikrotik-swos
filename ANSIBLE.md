@@ -56,11 +56,12 @@ port_vlans:
 ### Setup
 
 1. Create inventory file from example:
+
 ```bash
 cp inventory.example.yml inventory.yml
 ```
 
-2. Edit `inventory.yml` with your switch details
+1. Edit `inventory.yml` with your switch details
 
 ### Run Playbook
 

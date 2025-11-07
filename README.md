@@ -26,6 +26,7 @@ pip install swos-lite
 ```
 
 Or for development:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -73,11 +74,13 @@ See module docstrings for complete API documentation.
 **Setup:**
 
 1. Install the Python package:
+
    ```bash
    pip install swos-lite
    ```
 
 2. Copy the module to your playbook's library directory:
+
    ```bash
    mkdir -p library
    cp ansible/swos_lite.py library/
@@ -115,6 +118,7 @@ See docstrings in the swos_lite module for detailed parameters and return values
 ### Publishing a New Release
 
 1. Create and push a git tag:
+
    ```bash
    git tag v0.2.0
    git push origin v0.2.0

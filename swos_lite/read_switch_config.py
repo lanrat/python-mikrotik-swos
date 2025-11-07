@@ -272,7 +272,7 @@ def main():
 Examples:
   %(prog)s 192.168.88.1 admin password
   %(prog)s 192.168.88.1 admin ""
-  %(prog)s --url http://192.168.88.1 --username admin --password mypass
+  %(prog)s --url http://192.168.88.1 --username admin --password pass
         '''
     )
 

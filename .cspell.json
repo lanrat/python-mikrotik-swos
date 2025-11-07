@@ -1,0 +1,27 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [
+        "bitmask",
+        "dhost",
+        "docstrings",
+        "hexlify",
+        "hexstring",
+        "LACP",
+        "lldp",
+        "MikroTik",
+        "pycache",
+        "pypa",
+        "pypi",
+        "setuptools",
+        "SNMP",
+        "suboptions",
+        "swos",
+        "unhexlify",
+        "venv"
+    ],
+    "ignoreWords": [],
+    "import": []
+}

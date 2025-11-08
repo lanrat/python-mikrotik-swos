@@ -40,13 +40,37 @@ options:
     config:
         description:
             - Complete switch configuration dictionary organized by sections
-            - Supported sections are ports, poe, lag, port_vlans, snmp
-            - Each section contains a list of per-port configurations (except snmp)
-            - Only specified ports in each section will be evaluated for changes
-            - The system section is ignored (read-only, for documentation only)
+            - Supported sections are system, ports, poe, lag, port_vlans, vlans, snmp
+            - Most sections contain lists of per-port configurations
+            - Only specified settings in each section will be evaluated for changes
         required: false
         type: dict
         suboptions:
+            system:
+                description:
+                    - System configuration dictionary
+                type: dict
+                suboptions:
+                    identity:
+                        description: Device identity/name
+                        type: str
+                    address_acquisition:
+                        description: IP address acquisition mode
+                        type: str
+                        choices: ['DHCP with fallback', 'static', 'DHCP only']
+                    static_ip:
+                        description: Static/fallback IP address
+                        type: str
+                    allow_from:
+                        description: IP/CIDR restriction for management access (empty string removes restriction)
+                        type: str
+                    allow_from_ports:
+                        description: List of port numbers allowed for management access
+                        type: list
+                        elements: int
+                    allow_from_vlan:
+                        description: VLAN ID allowed for management access
+                        type: int
             ports:
                 description:
                     - List of port configuration dictionaries
@@ -128,6 +152,29 @@ options:
                     default_vlan_id:
                         description: Default VLAN ID for untagged traffic
                         type: int
+                    force_vlan_id:
+                        description: Force VLAN ID on this port
+                        type: bool
+            vlans:
+                description:
+                    - List of VLAN table entries
+                    - Defines which ports are members of each VLAN
+                type: list
+                elements: dict
+                suboptions:
+                    vlan_id:
+                        description: VLAN ID (1-4094)
+                        required: true
+                        type: int
+                    member_ports:
+                        description: List of port numbers that are members of this VLAN
+                        required: true
+                        type: list
+                        elements: int
+                    igmp_snooping:
+                        description: Enable IGMP snooping for this VLAN
+                        type: bool
+                        default: false
             snmp:
                 description:
                     - SNMP configuration dictionary
@@ -320,16 +367,15 @@ from ansible.module_utils.basic import AnsibleModule
 import sys
 import os
 
-# Add parent directory to path to import swos_lite_api
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 try:
-    from swos_lite_api import (
+    from swos_lite import (
         get_port_vlans, set_port_vlan,
+        get_vlans, set_vlans,
         get_links, set_port_config,
         get_poe, set_poe_config,
         get_lag, set_lag_config,
-        get_snmp, set_snmp
+        get_snmp, set_snmp,
+        get_system_info, set_system
     )
     HAS_SWOS_LITE_API = True
 except ImportError:
@@ -347,6 +393,9 @@ def port_vlan_matches(current, desired):
         matches = False
 
     if 'default_vlan_id' in desired and current.get('default_vlan_id') != desired['default_vlan_id']:
+        matches = False
+
+    if 'force_vlan_id' in desired and current.get('force_vlan_id') != desired['force_vlan_id']:
         matches = False
 
     return matches
@@ -419,6 +468,64 @@ def snmp_config_matches(current, desired):
     return matches
 
 
+def system_config_matches(current, desired):
+    """Check if current system config matches desired config"""
+    matches = True
+
+    if 'identity' in desired and current.get('identity') != desired['identity']:
+        matches = False
+
+    if 'address_acquisition' in desired and current.get('address_acquisition') != desired['address_acquisition']:
+        matches = False
+
+    if 'static_ip' in desired and current.get('static_ip') != desired['static_ip']:
+        matches = False
+
+    if 'allow_from' in desired and current.get('allow_from') != desired['allow_from']:
+        matches = False
+
+    if 'allow_from_ports' in desired:
+        if sorted(current.get('allow_from_ports', [])) != sorted(desired['allow_from_ports']):
+            matches = False
+
+    if 'allow_from_vlan' in desired and current.get('allow_from_vlan') != desired['allow_from_vlan']:
+        matches = False
+
+    return matches
+
+
+def vlans_match(current_vlans, desired_vlans):
+    """Check if current VLAN table matches desired VLAN table
+
+    Compares two lists of VLANs by vlan_id, member_ports, and igmp_snooping.
+    Returns True if they match exactly (same VLANs with same settings).
+    """
+    # Create dictionaries keyed by vlan_id for easier comparison
+    current_dict = {v['vlan_id']: v for v in current_vlans}
+    desired_dict = {v['vlan_id']: v for v in desired_vlans}
+
+    # Check if VLAN IDs match
+    if set(current_dict.keys()) != set(desired_dict.keys()):
+        return False
+
+    # Check each VLAN's settings
+    for vlan_id in desired_dict:
+        current = current_dict[vlan_id]
+        desired = desired_dict[vlan_id]
+
+        # Compare member ports (as sorted lists for comparison)
+        if sorted(current['member_ports']) != sorted(desired['member_ports']):
+            return False
+
+        # Compare IGMP snooping (default to False if not specified)
+        current_igmp = current.get('igmp_snooping', False)
+        desired_igmp = desired.get('igmp_snooping', False)
+        if current_igmp != desired_igmp:
+            return False
+
+    return True
+
+
 def run_module():
     module_args = dict(
         host=dict(type='str', required=True),
@@ -440,7 +547,7 @@ def run_module():
     )
 
     if not HAS_SWOS_LITE_API:
-        module.fail_json(msg='swos_lite_api module is required. Ensure swos_lite_api.py is in the parent directory.')
+        module.fail_json(msg='swos_lite module is required. Install with: pip install swos-lite')
 
     host = module.params['host']
     username = module.params['username']
@@ -461,6 +568,40 @@ def run_module():
     try:
         # Track all changes across all sections
         all_changes = []
+
+        # Process system configuration
+        if config and 'system' in config:
+            current_system = get_system_info(url, username, password)
+            system_cfg = config['system']
+
+            if not system_config_matches(current_system, system_cfg):
+                change_desc = []
+                if 'identity' in system_cfg and current_system.get('identity') != system_cfg['identity']:
+                    change_desc.append(f"identity '{current_system.get('identity')}'->'{system_cfg['identity']}'")
+                if 'address_acquisition' in system_cfg and current_system.get('address_acquisition') != system_cfg['address_acquisition']:
+                    change_desc.append(f"address_acquisition {current_system.get('address_acquisition')}->{system_cfg['address_acquisition']}")
+                if 'static_ip' in system_cfg and current_system.get('static_ip') != system_cfg['static_ip']:
+                    change_desc.append(f"static_ip {current_system.get('static_ip')}->{system_cfg['static_ip']}")
+                if 'allow_from' in system_cfg and current_system.get('allow_from') != system_cfg['allow_from']:
+                    change_desc.append(f"allow_from '{current_system.get('allow_from')}'->'{system_cfg['allow_from']}'")
+                if 'allow_from_ports' in system_cfg:
+                    if sorted(current_system.get('allow_from_ports', [])) != sorted(system_cfg['allow_from_ports']):
+                        change_desc.append(f"allow_from_ports {current_system.get('allow_from_ports')}->{system_cfg['allow_from_ports']}")
+                if 'allow_from_vlan' in system_cfg and current_system.get('allow_from_vlan') != system_cfg['allow_from_vlan']:
+                    change_desc.append(f"allow_from_vlan {current_system.get('allow_from_vlan')}->{system_cfg['allow_from_vlan']}")
+
+                all_changes.append(f"System config ({', '.join(change_desc)})")
+
+                if not module.check_mode:
+                    set_system(
+                        url, username, password,
+                        identity=system_cfg.get('identity'),
+                        address_acquisition=system_cfg.get('address_acquisition'),
+                        static_ip=system_cfg.get('static_ip'),
+                        allow_from=system_cfg.get('allow_from'),
+                        allow_from_ports=system_cfg.get('allow_from_ports'),
+                        allow_from_vlan=system_cfg.get('allow_from_vlan')
+                    )
 
         # Process ports configuration
         if config and 'ports' in config:
@@ -575,6 +716,8 @@ def run_module():
                         change_desc.append(f"receive {current.get('vlan_receive')}->{port_vlan['vlan_receive']}")
                     if 'default_vlan_id' in port_vlan and current.get('default_vlan_id') != port_vlan['default_vlan_id']:
                         change_desc.append(f"vlan {current.get('default_vlan_id')}->{port_vlan['default_vlan_id']}")
+                    if 'force_vlan_id' in port_vlan and current.get('force_vlan_id') != port_vlan['force_vlan_id']:
+                        change_desc.append(f"force {current.get('force_vlan_id')}->{port_vlan['force_vlan_id']}")
 
                     all_changes.append(f"Port {port_num} VLAN ({', '.join(change_desc)})")
 
@@ -583,8 +726,49 @@ def run_module():
                             url, username, password, port_num,
                             vlan_mode=port_vlan.get('vlan_mode'),
                             vlan_receive=port_vlan.get('vlan_receive'),
-                            default_vlan_id=port_vlan.get('default_vlan_id')
+                            default_vlan_id=port_vlan.get('default_vlan_id'),
+                            force_vlan_id=port_vlan.get('force_vlan_id')
                         )
+
+        # Process VLAN table configuration
+        if config and 'vlans' in config:
+            current_vlans = get_vlans(url, username, password)
+            desired_vlans = config['vlans']
+
+            if not vlans_match(current_vlans, desired_vlans):
+                # Build detailed change description
+                current_vlan_ids = set(v['vlan_id'] for v in current_vlans)
+                desired_vlan_ids = set(v['vlan_id'] for v in desired_vlans)
+
+                added_vlans = desired_vlan_ids - current_vlan_ids
+                removed_vlans = current_vlan_ids - desired_vlan_ids
+                common_vlans = current_vlan_ids & desired_vlan_ids
+
+                change_parts = []
+                if added_vlans:
+                    change_parts.append(f"add VLANs {sorted(added_vlans)}")
+                if removed_vlans:
+                    change_parts.append(f"remove VLANs {sorted(removed_vlans)}")
+
+                # Check for changes in common VLANs
+                modified_vlans = []
+                current_dict = {v['vlan_id']: v for v in current_vlans}
+                desired_dict = {v['vlan_id']: v for v in desired_vlans}
+                for vlan_id in common_vlans:
+                    curr = current_dict[vlan_id]
+                    des = desired_dict[vlan_id]
+                    if sorted(curr['member_ports']) != sorted(des['member_ports']):
+                        modified_vlans.append(vlan_id)
+                    elif curr.get('igmp_snooping', False) != des.get('igmp_snooping', False):
+                        modified_vlans.append(vlan_id)
+
+                if modified_vlans:
+                    change_parts.append(f"modify VLANs {sorted(modified_vlans)}")
+
+                all_changes.append(f"VLAN table ({', '.join(change_parts)})")
+
+                if not module.check_mode:
+                    set_vlans(url, username, password, desired_vlans)
 
         # Process SNMP configuration
         if config and 'snmp' in config:
@@ -623,6 +807,8 @@ def run_module():
         # Get final configuration (only if changes were made)
         if not module.check_mode and result['changed']:
             result['current_config'] = {}
+            if config and 'system' in config:
+                result['current_config']['system'] = get_system_info(url, username, password)
             if config and 'ports' in config:
                 result['current_config']['ports'] = get_links(url, username, password)
             if config and 'poe' in config:
@@ -631,13 +817,16 @@ def run_module():
                 result['current_config']['lag'] = get_lag(url, username, password)
             if port_vlans:
                 result['current_config']['port_vlans'] = get_port_vlans(url, username, password)
+            if config and 'vlans' in config:
+                result['current_config']['vlans'] = get_vlans(url, username, password)
             if config and 'snmp' in config:
                 result['current_config']['snmp'] = get_snmp(url, username, password)
 
         module.exit_json(**result)
 
     except Exception as e:
-        module.fail_json(msg=f"Error: {str(e)}", **result)
+        result['msg'] = f"Error: {str(e)}"
+        module.fail_json(**result)
 
 
 def main():

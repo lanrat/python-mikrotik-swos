@@ -13,8 +13,8 @@ Configuration file (`switch_config.yml`) organized by sections:
 - **ports**: Port names, enabled state, auto-negotiation (writable)
 - **poe**: PoE mode, priority, voltage level, LLDP enabled (writable)
 - **lag**: LAG/LACP mode, group assignment (writable)
-- **port_vlans**: VLAN mode, receive filter, default VLAN (writable)
-- **vlans**: Global VLAN membership (planned)
+- **port_vlans**: Per-port VLAN mode, receive filter, default VLAN, force VLAN ID (writable)
+- **vlans**: Global VLAN table - VLAN IDs, member ports, IGMP snooping (writable)
 
 Example `switch_config.yml`:
 
@@ -49,6 +49,16 @@ port_vlans:
     vlan_mode: "Enabled"
     vlan_receive: "Only Untagged"
     default_vlan_id: 64
+    force_vlan_id: false
+
+vlans:
+  - vlan_id: 1
+    member_ports: [1, 2, 4, 5, 6, 7, 8, 9, 10]
+  - vlan_id: 64
+    member_ports: [3, 4, 5]
+    igmp_snooping: true
+  - vlan_id: 100
+    member_ports: [9, 10]
 ```
 
 ## Usage
@@ -86,11 +96,10 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
 | `host` | Yes | - | Switch IP/hostname |
 | `username` | No | `admin` | Username |
 | `password` | No | `""` | Password |
-| `config` | No | `{}` | Configuration with sections: snmp, ports, poe, lag, port_vlans |
+| `config` | No | `{}` | Configuration with sections: snmp, ports, poe, lag, port_vlans, vlans |
 
-**Supported:** SNMP, port config, PoE, LAG/LACP, per-port VLANs
+**Supported:** SNMP, port config, PoE, LAG/LACP, per-port VLANs, global VLAN table
 **Read-only:** Link status, speed/duplex, PoE power readings, host table, system info
-**Planned:** Global VLAN membership
 
 ## Playbook Example
 

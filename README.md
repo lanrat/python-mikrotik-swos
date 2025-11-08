@@ -10,8 +10,8 @@ Python library and tools for managing MikroTik SwOS Lite switches (version 2.20+
 
 ## Capabilities
 
-**Read:** System info, ports, PoE, LAG/LACP, VLANs, host table, SFP info, SNMP
-**Write:** Port config, PoE settings, LAG/LACP, per-port VLANs, SNMP
+**Read:** System info, ports, PoE, LAG/LACP, per-port VLANs, VLAN table, host table, SFP info, SNMP
+**Write:** System settings, port config, PoE settings, LAG/LACP, per-port VLANs, VLAN table, SNMP
 **Note:** All configuration changes are immediately applied and persisted by the switch.
 
 ## Requirements
@@ -101,11 +101,11 @@ See [ANSIBLE.md](ANSIBLE.md) for complete documentation and examples.
 
 **Read:** `get_system_info()`, `get_links()`, `get_poe()`, `get_lag()`, `get_port_vlans()`, `get_vlans()`, `get_hosts()`, `get_sfp_info()`, `get_snmp()`
 
-**Write:** `set_port_config()`, `set_poe_config()`, `set_lag_config()`, `set_port_vlan()`, `set_snmp()`
+**Write:** `set_system()`, `set_port_config()`, `set_poe_config()`, `set_lag_config()`, `set_port_vlan()`, `set_vlans()`, `set_snmp()`
 
 All functions take `(url, username, password, ...)` parameters.
 Read functions return lists of dictionaries with configuration data.
-Write functions take port_number and optional setting parameters (except `set_snmp()` which sets global config).
+Write functions take port_number and optional setting parameters (except `set_system()`, `set_snmp()`, and `set_vlans()` which set global config).
 
 See docstrings in the swos_lite module for detailed parameters and return values.
 

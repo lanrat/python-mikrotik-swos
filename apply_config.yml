@@ -5,15 +5,12 @@
 - name: Apply MikroTik SwOS Lite Configuration
   hosts: switches
   gather_facts: no
+  connection: local
 
   tasks:
     - name: Load switch configuration from file
       set_fact:
         switch_config: "{{ lookup('file', config_file | default('switch_config.yml')) | from_yaml }}"
-
-    - name: Display configuration to be applied
-      debug:
-        msg: "Applying configuration for {{ switch_config.system.device_name }} ({{ switch_config.system.model }})"
 
     - name: Apply switch configuration
       swos_lite:

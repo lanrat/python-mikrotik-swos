@@ -61,6 +61,69 @@ vlans:
     member_ports: [9, 10]
 ```
 
+## Installation Methods
+
+### Method 1: Git Submodule (Recommended for Infrastructure Repos)
+
+Add this repository as a submodule to your Ansible configuration repository:
+
+```bash
+# In your ansible repository root
+git submodule add https://github.com/lanrat/swos_lite.git modules/swos_lite
+
+# Initialize and update the submodule
+git submodule update --init --recursive
+
+# Commit the submodule addition
+git add .gitmodules modules/swos_lite
+git commit -m "Add swos_lite module as submodule"
+```
+
+**Configure ansible.cfg to use the submodule:**
+
+```ini
+[defaults]
+library = ./modules/swos_lite/ansible
+```
+
+**Clone your repository with submodules:**
+
+```bash
+# New clones
+git clone --recursive https://github.com/yourname/your-ansible-repo.git
+
+# Existing clones
+git submodule update --init --recursive
+```
+
+**Update submodule to latest version:**
+
+```bash
+cd modules/swos_lite
+git pull origin main
+cd ../..
+git add modules/swos_lite
+git commit -m "Update swos_lite module"
+```
+
+### Method 2: Copy Module Files
+
+Copy the module to your playbook's library directory:
+
+```bash
+mkdir -p library
+cp ansible/swos_lite.py library/
+```
+
+### Method 3: Python Package + Module Copy
+
+Install the Python package globally or in a virtualenv, then copy just the Ansible module:
+
+```bash
+pip install swos-lite
+cp /path/to/site-packages/ansible/swos_lite.py library/
+```
+
 ## Usage
 
 ### Setup
@@ -71,7 +134,7 @@ vlans:
 cp inventory.example.yml inventory.yml
 ```
 
-1. Edit `inventory.yml` with your switch details
+2. Edit `inventory.yml` with your switch details
 
 ### Run Playbook
 

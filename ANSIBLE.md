@@ -69,21 +69,21 @@ Add this repository as a submodule to your Ansible configuration repository:
 
 ```bash
 # In your ansible repository root
-git submodule add https://github.com/lanrat/swos_lite.git modules/swos_lite
+git submodule add https://github.com/lanrat/swos.git modules/swos
 
 # Initialize and update the submodule
 git submodule update --init --recursive
 
 # Commit the submodule addition
-git add .gitmodules modules/swos_lite
-git commit -m "Add swos_lite module as submodule"
+git add .gitmodules modules/swos
+git commit -m "Add swos module as submodule"
 ```
 
 **Configure ansible.cfg to use the submodule:**
 
 ```ini
 [defaults]
-library = ./modules/swos_lite/ansible
+library = ./modules/swos/ansible
 ```
 
 **Clone your repository with submodules:**
@@ -99,11 +99,11 @@ git submodule update --init --recursive
 **Update submodule to latest version:**
 
 ```bash
-cd modules/swos_lite
+cd modules/swos
 git pull origin main
 cd ../..
-git add modules/swos_lite
-git commit -m "Update swos_lite module"
+git add modules/swos
+git commit -m "Update swos module"
 ```
 
 ### Method 2: Copy Module Files
@@ -112,7 +112,7 @@ Copy the module to your playbook's library directory:
 
 ```bash
 mkdir -p library
-cp ansible/swos_lite.py library/
+cp ansible/swos.py library/
 ```
 
 ### Method 3: Python Package + Module Copy
@@ -120,8 +120,8 @@ cp ansible/swos_lite.py library/
 Install the Python package globally or in a virtualenv, then copy just the Ansible module:
 
 ```bash
-pip install swos-lite
-cp /path/to/site-packages/ansible/swos_lite.py library/
+pip install swos
+cp /path/to/site-packages/ansible/swos.py library/
 ```
 
 ## Usage
@@ -171,7 +171,7 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
   hosts: localhost
   tasks:
     - name: Apply configuration
-      swos_lite:
+      swos:
         host: "192.168.1.7"
         config: "{{ lookup('file', 'switch_config.yml') | from_yaml }}"
 ```

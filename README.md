@@ -1,11 +1,11 @@
-# SwOS Lite API and Tools
+# SwOS API and Tools
 
-Python library and tools for managing MikroTik SwOS Lite switches (version 2.20+).
+Python library and tools for managing MikroTik SwOS and SwOS Lite switches.
 
 ## Components
 
-- **swos_lite package**: Python library for reading/writing switch configuration
-- **swos-lite-config**: CLI tool for displaying configuration
+- **swos package**: Python library for reading/writing switch configuration
+- **swos-config**: CLI tool for displaying configuration
 - **Ansible module**: Declarative configuration management (see [ANSIBLE.md](ANSIBLE.md))
 
 ## Capabilities
@@ -22,7 +22,7 @@ Python library and tools for managing MikroTik SwOS Lite switches (version 2.20+
 ## Installation
 
 ```bash
-pip install swos-lite
+pip install swos
 ```
 
 Or for development:
@@ -33,12 +33,18 @@ pip install -r requirements.txt
 
 ## Compatibility
 
+- SwOS 2.18
+
 - SwOS Lite 2.17
 - SwOS Lite 2.18
 - SwOS Lite 2.19
 - SwOS Lite 2.20
 
 ## Tested Hardware
+
+- CRS305-1G-4S+
+- CRS310-8G+2S+
+- CRS326-24S+2Q
 
 - CSS610-8G-2S+
 - CSS610-8P-2S+
@@ -51,16 +57,16 @@ pip install -r requirements.txt
 
 ```bash
 # Display configuration
-swos-lite-config 192.168.1.7 admin ""
+swos-config 192.168.1.7 admin ""
 
 # Save to file
-swos-lite-config 192.168.1.7 admin "" > backup.txt
+swos-config 192.168.1.7 admin "" > backup.txt
 ```
 
 ### Python API
 
 ```python
-from swos_lite import get_system_info, set_port_config
+from swos import get_system_info, set_port_config
 
 url = "http://192.168.1.7"
 system = get_system_info(url, "admin", "")
@@ -78,14 +84,14 @@ See module docstrings for complete API documentation.
 1. Install the Python package:
 
    ```bash
-   pip install swos-lite
+   pip install swos
    ```
 
 2. Copy the module to your playbook's library directory:
 
    ```bash
    mkdir -p library
-   cp ansible/swos_lite.py library/
+   cp ansible/swos.py library/
    ```
 
 **Usage:**
@@ -107,7 +113,7 @@ All functions take `(url, username, password, ...)` parameters.
 Read functions return lists of dictionaries with configuration data.
 Write functions take port_number and optional setting parameters (except `set_system()`, `set_snmp()`, and `set_vlans()` which set global config).
 
-See docstrings in the swos_lite module for detailed parameters and return values.
+See docstrings in the swos module for detailed parameters and return values.
 
 ## Security
 

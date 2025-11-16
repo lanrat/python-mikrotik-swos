@@ -7,11 +7,13 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: swos_lite
-short_description: Manage MikroTik SwOS Lite switch configuration
+module: swos
+short_description: Manage MikroTik SwOS and SwOS Lite switch configuration
 version_added: "1.0.0"
 description:
-    - Manages configuration of MikroTik switches running SwOS Lite 2.20+
+    - Manages configuration of MikroTik switches running SwOS or SwOS Lite
+    - Automatically detects platform type (SwOS vs SwOS Lite) and adapts accordingly
+    - Supports SwOS Lite 2.20+ (CSS series) and SwOS 2.14+ (CRS/RB series)
     - Supports configuring ports, PoE, LAG/LACP, VLANs, and SNMP
     - Implements idempotent operations (only applies changes when needed)
     - Supports check mode for dry-run validation
@@ -199,7 +201,9 @@ options:
         type: list
         elements: dict
 notes:
-    - Requires swos_lite_api.py to be in the parent directory
+    - Requires swos Python package (pip install swos)
+    - Automatically detects SwOS vs SwOS Lite and uses appropriate field mappings
+    - Supports both CSS series (SwOS Lite) and CRS/RB series (SwOS) switches
     - Only applies changes when configuration differs from current state
     - All write operations send complete configuration to the switch
     - Read-only settings are automatically ignored
@@ -207,13 +211,13 @@ notes:
 requirements:
     - requests>=2.25.0
 author:
-    - SwOS Lite Ansible Module Contributors
+    - SwOS Ansible Module Contributors
 '''
 
 EXAMPLES = r'''
 # Apply complete configuration from YAML file
 - name: Apply switch configuration
-  swos_lite:
+  swos:
     host: 192.168.1.7
     username: admin
     password: ""
@@ -222,7 +226,7 @@ EXAMPLES = r'''
 
 # Configure port settings only
 - name: Configure port names and states
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config:
       ports:
@@ -236,7 +240,7 @@ EXAMPLES = r'''
 
 # Configure PoE settings
 - name: Configure PoE on multiple ports
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config:
       poe:
@@ -250,7 +254,7 @@ EXAMPLES = r'''
 
 # Configure LAG/LACP
 - name: Configure LACP trunk
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config:
       lag:
@@ -263,7 +267,7 @@ EXAMPLES = r'''
 
 # Configure VLANs
 - name: Configure port VLANs
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config:
       port_vlans:
@@ -278,7 +282,7 @@ EXAMPLES = r'''
 
 # Configure SNMP
 - name: Configure SNMP settings
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config:
       snmp:
@@ -289,7 +293,7 @@ EXAMPLES = r'''
 
 # Configure multiple sections at once
 - name: Configure ports, PoE, and VLANs
-  swos_lite:
+  swos:
     host: 192.168.1.7
     username: admin
     password: ""
@@ -309,7 +313,7 @@ EXAMPLES = r'''
 
 # Use with Ansible Vault for password
 - name: Apply configuration with vault password
-  swos_lite:
+  swos:
     host: 192.168.1.7
     username: admin
     password: "{{ vault_switch_password }}"
@@ -317,7 +321,7 @@ EXAMPLES = r'''
 
 # Check mode - preview changes without applying
 - name: Preview configuration changes
-  swos_lite:
+  swos:
     host: 192.168.1.7
     config: "{{ switch_config }}"
   check_mode: yes
@@ -368,7 +372,7 @@ import sys
 import os
 
 try:
-    from swos_lite import (
+    from swos import (
         get_port_vlans, set_port_vlan,
         get_vlans, set_vlans,
         get_links, set_port_config,
@@ -377,9 +381,9 @@ try:
         get_snmp, set_snmp,
         get_system_info, set_system
     )
-    HAS_SWOS_LITE_API = True
+    HAS_SWOS_API = True
 except ImportError:
-    HAS_SWOS_LITE_API = False
+    HAS_SWOS_API = False
 
 
 def port_vlan_matches(current, desired):
@@ -546,8 +550,8 @@ def run_module():
         supports_check_mode=True
     )
 
-    if not HAS_SWOS_LITE_API:
-        module.fail_json(msg='swos_lite module is required. Install with: pip install swos-lite')
+    if not HAS_SWOS_API:
+        module.fail_json(msg='swos module is required. Install with: pip install swos')
 
     host = module.params['host']
     username = module.params['username']

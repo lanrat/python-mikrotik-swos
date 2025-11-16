@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SwitchOS Lite Configuration Reader
+SwitchOS Configuration Reader
 
-This script reads and displays the complete configuration of a MikroTik SwitchOS Lite
-device in a human-readable format using the swos_lite_api library.
+This script reads and displays the complete configuration of a MikroTik SwOS/SwOS Lite
+device in a human-readable format using the swos library.
 
 Requirements:
-    - swos_lite_api.py (included in this repository)
+    - swos library (included in this repository)
     - requests library (pip install requests)
 
 Usage:
@@ -18,7 +18,7 @@ Example:
 
 import sys
 import argparse
-from swos_lite import (
+from swos import (
     get_system_info,
     get_links,
     get_poe,

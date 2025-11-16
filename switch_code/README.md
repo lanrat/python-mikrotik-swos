@@ -2,6 +2,9 @@
 
 This folder contains the basic HTML and JS used by the various MikroTik SwitchOS and SwitchOS Lite HTTP interfaces.
 
+- Cloud Router Switch (CRS): Runs the full SwitchOS or RouterOS
+- Cloud Smart Switch (CSS): Runs simpler SwitchOS
+
 ## Purpose
 
 The code here is used as a reference when reverse-engineering the API calls.

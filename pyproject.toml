@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "swos-lite"
+name = "swos"
 dynamic = ["version"]
-description = "Python library and tools for managing MikroTik SwOS Lite switches"
+description = "Python library and tools for managing MikroTik SwOS and SwOS Lite switches"
 readme = "README.md"
 requires-python = ">=3.6"
 license = "MIT"
 authors = [
-    {name = "SwOS Lite Contributors"}
+    {name = "SwOS Contributors"}
 ]
 keywords = ["mikrotik", "swos", "switch", "network", "automation"]
 classifiers = [
@@ -24,15 +24,15 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lanrat/swos-lite"
-Repository = "https://github.com/lanrat/swos-lite"
-Issues = "https://github.com/lanrat/swos-lite/issues"
+Homepage = "https://github.com/lanrat/swos"
+Repository = "https://github.com/lanrat/swos"
+Issues = "https://github.com/lanrat/swos/issues"
 
 [project.scripts]
-swos-lite-config = "swos_lite.read_switch_config:main"
+swos-config = "swos.read_switch_config:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["swos_lite*"]
+include = ["swos*"]
 
 [tool.setuptools_scm]

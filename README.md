@@ -1,5 +1,9 @@
 # SwOS API and Tools
 
+[![PyPI version](https://badge.fury.io/py/mikrotik-swos.svg)](https://pypi.org/project/mikrotik-swos/)
+[![Python versions](https://img.shields.io/pypi/pyversions/mikrotik-swos.svg)](https://pypi.org/project/mikrotik-swos/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Python library and tools for managing MikroTik SwOS and SwOS Lite switches.
 
 ## Components

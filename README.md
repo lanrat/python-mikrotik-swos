@@ -22,7 +22,7 @@ Python library and tools for managing MikroTik SwOS and SwOS Lite switches.
 ## Installation
 
 ```bash
-pip install swos
+pip install mikrotik-swos
 ```
 
 Or for development:
@@ -84,7 +84,7 @@ See module docstrings for complete API documentation.
 1. Install the Python package:
 
    ```bash
-   pip install swos
+   pip install mikrotik-swos
    ```
 
 2. Copy the module to your playbook's library directory:

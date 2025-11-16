@@ -69,7 +69,7 @@ Add this repository as a submodule to your Ansible configuration repository:
 
 ```bash
 # In your ansible repository root
-git submodule add https://github.com/lanrat/swos.git modules/swos
+git submodule add https://github.com/lanrat/python-mikrotik-swos.git modules/swos
 
 # Initialize and update the submodule
 git submodule update --init --recursive
@@ -120,7 +120,7 @@ cp ansible/swos.py library/
 Install the Python package globally or in a virtualenv, then copy just the Ansible module:
 
 ```bash
-pip install swos
+pip install mikrotik-swos
 cp /path/to/site-packages/ansible/swos.py library/
 ```
 

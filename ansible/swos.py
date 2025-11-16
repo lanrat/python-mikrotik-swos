@@ -201,7 +201,7 @@ options:
         type: list
         elements: dict
 notes:
-    - Requires swos Python package (pip install swos)
+    - Requires swos Python package (pip install mikrotik-swos)
     - Automatically detects SwOS vs SwOS Lite and uses appropriate field mappings
     - Supports both CSS series (SwOS Lite) and CRS/RB series (SwOS) switches
     - Only applies changes when configuration differs from current state
@@ -551,7 +551,7 @@ def run_module():
     )
 
     if not HAS_SWOS_API:
-        module.fail_json(msg='swos module is required. Install with: pip install swos')
+        module.fail_json(msg='swos module is required. Install with: pip install mikrotik-swos')
 
     host = module.params['host']
     username = module.params['username']

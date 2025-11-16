@@ -26,7 +26,6 @@ from swos import (
     get_vlans,
     get_port_vlans,
     get_hosts,
-    decode_port_mask,
     decode_hex_string
 )
 
@@ -163,9 +162,8 @@ def format_vlan_config(vlan_config):
         vlan_id = vlan.get('vlan_id', 'N/A')
         print_subsection_header(f"VLAN {vlan_id}")
 
-        # Member ports
-        port_mask = vlan.get('port_mask', 0)
-        members = decode_port_mask(port_mask)
+        # Member ports (already decoded by get_vlans)
+        members = vlan.get('member_ports', [])
         if members:
             print(f"  Member Ports: {', '.join(map(str, members))}")
         else:

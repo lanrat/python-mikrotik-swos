@@ -10,6 +10,7 @@ Python library and tools for managing MikroTik SwOS and SwOS Lite switches.
 
 - **swos package**: Python library for reading/writing switch configuration
 - **swos-config**: CLI tool for displaying configuration
+- **swos-export**: CLI tool for exporting configurations to Ansible YAML format
 - **Ansible module**: Full-featured Ansible integration for declarative, idempotent switch configuration management
   - Supports check mode (dry-run)
   - Auto-detects platform (SwOS vs SwOS Lite)
@@ -61,7 +62,9 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### CLI Tool
+### CLI Tools
+
+**swos-config** - Display switch configuration:
 
 ```bash
 # Display configuration
@@ -69,6 +72,16 @@ swos-config 192.168.1.7 admin ""
 
 # Save to file
 swos-config 192.168.1.7 admin "" > backup.txt
+```
+
+**swos-export** - Export to Ansible YAML format:
+
+```bash
+# Export all switches from inventory
+swos-export -i inventory.yml -o configs/
+
+# Export single switch
+swos-export --host 192.168.1.1 --username admin --password "" -o switch.yml
 ```
 
 ### Python API

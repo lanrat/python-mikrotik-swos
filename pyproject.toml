@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.25.0",
+    "pyyaml>=5.1",
 ]
 
 [project.urls]
@@ -30,6 +31,7 @@ Issues = "https://github.com/lanrat/python-mikrotik-swos/issues"
 
 [project.scripts]
 swos-config = "swos.read_switch_config:main"
+swos-export = "swos.export_ansible_config:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

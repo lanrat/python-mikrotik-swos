@@ -40,8 +40,9 @@ Or for development:
 pip install -r requirements.txt
 ```
 
-## Compatibility
+## Confirmed Compatibility
 
+- SwOS 2.17
 - SwOS 2.18
 
 - SwOS Lite 2.17

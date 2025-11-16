@@ -35,3 +35,21 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Clear GitHub badge cache
+        run: |
+          # Wait for PyPI to index and badge services to update
+          # (reduces this if you want faster workflow, but may show stale badges)
+          sleep 60
+
+          # Fetch README from GitHub to get camo URLs
+          README_HTML=$(curl -s -H "Accept: application/vnd.github.v3.html" \
+            "https://api.github.com/repos/${{ github.repository }}/readme")
+
+          # Extract and purge all camo.githubusercontent.com URLs
+          echo "$README_HTML" | grep -o 'https://camo.githubusercontent.com/[^"]*' | while read url; do
+            echo "Purging cache for: $url"
+            curl -s -X PURGE "$url"
+          done
+
+          echo "Badge cache cleared successfully"

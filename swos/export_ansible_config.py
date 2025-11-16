@@ -15,7 +15,7 @@ import sys
 import yaml
 from pathlib import Path
 
-from . import (
+from swos import (
     get_system_info,
     get_links,
     get_poe,

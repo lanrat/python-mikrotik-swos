@@ -6,7 +6,11 @@ Python library and tools for managing MikroTik SwOS and SwOS Lite switches.
 
 - **swos package**: Python library for reading/writing switch configuration
 - **swos-config**: CLI tool for displaying configuration
-- **Ansible module**: Declarative configuration management (see [ANSIBLE.md](ANSIBLE.md))
+- **Ansible module**: Full-featured Ansible integration for declarative, idempotent switch configuration management
+  - Supports check mode (dry-run)
+  - Auto-detects platform (SwOS vs SwOS Lite)
+  - Manages ports, PoE, VLANs, LAG/LACP, SNMP
+  - See [ANSIBLE.md](ANSIBLE.md) for complete documentation
 
 ## Capabilities
 
@@ -77,31 +81,55 @@ set_port_config(url, "admin", "", port_number=1, name="Uplink")
 
 See module docstrings for complete API documentation.
 
-### Ansible
+### Ansible - Infrastructure as Code
 
-**Setup:**
+**Perfect for managing multiple switches declaratively!**
 
-1. Install the Python package:
-
-   ```bash
-   pip install mikrotik-swos
-   ```
-
-2. Copy the module to your playbook's library directory:
-
-   ```bash
-   mkdir -p library
-   cp ansible/swos.py library/
-   ```
-
-**Usage:**
+**Quick Setup:**
 
 ```bash
-ansible-playbook apply_config.yml         # Apply configuration
-ansible-playbook apply_config.yml --check # Preview changes
+# Install package
+pip install mikrotik-swos
+
+# Copy module to your playbook
+mkdir -p library
+cp ansible/swos.py library/
 ```
 
-See [ANSIBLE.md](ANSIBLE.md) for complete documentation and examples.
+**Example Playbook:**
+
+```yaml
+- name: Configure Switch
+  hosts: switches
+  tasks:
+    - name: Apply configuration
+      swos:
+        host: "{{ ansible_host }}"
+        username: admin
+        password: ""
+        config:
+          system:
+            identity: "Office-Switch-01"
+          ports:
+            - port: 1
+              name: "Uplink"
+              enabled: true
+            - port: 2
+              name: "Server"
+              enabled: true
+          vlans:
+            - vlan_id: 10
+              members: [2, 3, 4]
+```
+
+**Features:**
+
+- Idempotent - only applies changes when needed
+- Check mode - preview changes with `--check`
+- Auto-detection - works with both SwOS and SwOS Lite
+- Complete validation - catches configuration errors before applying
+
+**[Full Ansible Documentation](ANSIBLE.md)** - Complete guide with advanced examples
 
 ## API Functions
 

@@ -218,7 +218,7 @@ EXAMPLES = r'''
 # Apply complete configuration from YAML file
 - name: Apply switch configuration
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     username: admin
     password: ""
     config: "{{ lookup('file', 'switch_config.yml') | from_yaml }}"
@@ -227,7 +227,7 @@ EXAMPLES = r'''
 # Configure port settings only
 - name: Configure port names and states
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config:
       ports:
         - port: 1
@@ -241,7 +241,7 @@ EXAMPLES = r'''
 # Configure PoE settings
 - name: Configure PoE on multiple ports
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config:
       poe:
         - port: 1
@@ -255,7 +255,7 @@ EXAMPLES = r'''
 # Configure LAG/LACP
 - name: Configure LACP trunk
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config:
       lag:
         - port: 9
@@ -268,7 +268,7 @@ EXAMPLES = r'''
 # Configure VLANs
 - name: Configure port VLANs
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config:
       port_vlans:
         - port: 3
@@ -283,7 +283,7 @@ EXAMPLES = r'''
 # Configure SNMP
 - name: Configure SNMP settings
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config:
       snmp:
         enabled: true
@@ -294,7 +294,7 @@ EXAMPLES = r'''
 # Configure multiple sections at once
 - name: Configure ports, PoE, and VLANs
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     username: admin
     password: ""
     config:
@@ -314,7 +314,7 @@ EXAMPLES = r'''
 # Use with Ansible Vault for password
 - name: Apply configuration with vault password
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     username: admin
     password: "{{ vault_switch_password }}"
     config: "{{ switch_config }}"
@@ -322,7 +322,7 @@ EXAMPLES = r'''
 # Check mode - preview changes without applying
 - name: Preview configuration changes
   swos:
-    host: 192.168.1.7
+    host: 192.168.88.1
     config: "{{ switch_config }}"
   check_mode: yes
 '''

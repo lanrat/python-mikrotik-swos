@@ -172,7 +172,7 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
   tasks:
     - name: Apply configuration
       swos:
-        host: "192.168.1.7"
+        host: "192.168.88.1"
         config: "{{ lookup('file', 'switch_config.yml') | from_yaml }}"
 ```
 

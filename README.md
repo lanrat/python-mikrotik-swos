@@ -68,10 +68,10 @@ pip install -r requirements.txt
 
 ```bash
 # Display configuration
-swos-config 192.168.1.7 admin ""
+swos-config 192.168.88.1 admin ""
 
 # Save to file
-swos-config 192.168.1.7 admin "" > backup.txt
+swos-config 192.168.88.1 admin "" > backup.txt
 ```
 
 **swos-export** - Export to Ansible YAML format:
@@ -89,7 +89,7 @@ swos-export --host 192.168.1.1 --username admin --password "" -o switch.yml
 ```python
 from swos import get_system_info, set_port_config
 
-url = "http://192.168.1.7"
+url = "http://192.168.88.1"
 system = get_system_info(url, "admin", "")
 print(f"{system['device_name']} - {system['model']}")
 

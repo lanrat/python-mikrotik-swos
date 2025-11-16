@@ -9,7 +9,7 @@ MikroTik SwOS Lite uses a simple HTTP-based API with Digest Authentication. Conf
 All requests require HTTP Digest Authentication:
 
 ```bash
-curl --digest -u admin:password "http://192.168.1.7/link.b"
+curl --digest -u admin:password "http://192.168.88.1/link.b"
 ```
 
 ## Data Format
@@ -60,13 +60,13 @@ Responses use JavaScript object notation with hex values:
 
 ```bash
 # Get port configuration
-curl --digest -u admin:password "http://192.168.1.7/link.b"
+curl --digest -u admin:password "http://192.168.88.1/link.b"
 
 # Get PoE status
-curl --digest -u admin:password "http://192.168.1.7/poe.b"
+curl --digest -u admin:password "http://192.168.88.1/poe.b"
 
 # Get SNMP settings
-curl --digest -u admin:password "http://192.168.1.7/snmp.b"
+curl --digest -u admin:password "http://192.168.88.1/snmp.b"
 ```
 
 ### Writing Configuration (POST)
@@ -83,7 +83,7 @@ curl --digest -u admin:password "http://192.168.1.7/snmp.b"
 
 ```bash
 # 1. GET current config
-curl --digest -u admin:password "http://192.168.1.7/link.b"
+curl --digest -u admin:password "http://192.168.88.1/link.b"
 # Response: {i01:0x03ff,i0a:['506f727431','506f727432',...],i02:0x03ff,...}
 
 # 2. Modify the desired field (i0a[0] = "NewName" = hex:'4e65774e616d65')
@@ -91,42 +91,42 @@ curl --digest -u admin:password "http://192.168.1.7/link.b"
 curl --digest -u admin:password \
   -H "Content-Type: text/plain" \
   -d "{i01:0x03ff,i0a:['4e65774e616d65','506f727432',...],i02:0x03ff,i05:[0x00,...],i03:0x03ff,i16:0x00,i12:0x00}" \
-  "http://192.168.1.7/link.b"
+  "http://192.168.88.1/link.b"
 ```
 
 #### Example: Enable PoE on Port 1
 
 ```bash
 # 1. GET current config
-curl --digest -u admin:password "http://192.168.1.7/poe.b"
+curl --digest -u admin:password "http://192.168.88.1/poe.b"
 
 # 2. Change i01[0] from 0x00 (off) to 0x02 (auto)
 # 3. POST only writable fields for first 8 ports
 curl --digest -u admin:password \
   -H "Content-Type: text/plain" \
   -d "{i01:[0x02,0x02,0x02,0x02,0x02,0x02,0x02,0x02],i02:[0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07],i03:[0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],i0a:0xff}" \
-  "http://192.168.1.7/poe.b"
+  "http://192.168.88.1/poe.b"
 ```
 
 #### Example: Set SNMP Community
 
 ```bash
 # 1. GET current config
-curl --digest -u admin:password "http://192.168.1.7/snmp.b"
+curl --digest -u admin:password "http://192.168.88.1/snmp.b"
 # Response: {i01:0x01,i02:'7075626c6963',i03:'',i04:''}
 
 # 2. Change i02 to "private" (hex: '70726976617465')
 curl --digest -u admin:password \
   -H "Content-Type: text/plain" \
   -d "{i01:0x01,i02:'70726976617465',i03:'',i04:''}" \
-  "http://192.168.1.7/snmp.b"
+  "http://192.168.88.1/snmp.b"
 ```
 
 #### Example: Set System Identity and Static IP
 
 ```bash
 # 1. GET current config
-curl --digest -u admin:password "http://192.168.1.7/sys.b"
+curl --digest -u admin:password "http://192.168.88.1/sys.b"
 
 # 2. Change identity to "Switch-01" and static IP to 192.168.88.1
 # Identity "Switch-01" = hex: '537769746368253041'
@@ -135,7 +135,7 @@ curl --digest -u admin:password "http://192.168.1.7/sys.b"
 curl --digest -u admin:password \
   -H "Content-Type: text/plain" \
   -d "{i05:'537769746368253041',i0a:0x00,i09:0x0158a8c0,i19:0x00000000,i1a:0x00,i12:0x03ff,i1b:0x01,...}" \
-  "http://192.168.1.7/sys.b"
+  "http://192.168.88.1/sys.b"
 ```
 
 ## Field Reference
@@ -326,7 +326,7 @@ post_body = build_post_data(data)
 
 To implement new functionality:
 
-1. **Check engine.js** - Download and decompress: `curl --compressed http://192.168.1.7/engine.js`
+1. **Check engine.js** - Download and decompress: `curl --compressed http://192.168.88.1/engine.js`
 2. **Find the page definition** - Search for `W("PageName"`
 3. **Identify field IDs** - Look for `id:"iXX"` in the field definitions
 4. **Check field types** - `t:D` (checkbox), `t:E` (dropdown), `t:I` (string), `t:F` (number)

@@ -53,6 +53,7 @@ pip install -r requirements.txt
 ## Tested Hardware
 
 - CRS305-1G-4S+
+- CRS309-1G-8S+
 - CRS310-8G+2S+
 - CRS326-24S+2Q
 

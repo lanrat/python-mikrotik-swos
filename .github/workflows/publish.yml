@@ -9,6 +9,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mikrotik-swos
     permissions:
       id-token: write  # Required for trusted publishing
 

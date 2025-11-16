@@ -22,7 +22,8 @@
         "suboptions",
         "swos",
         "unhexlify",
-        "venv"
+        "venv",
+        "virtualenv"
     ],
     "ignoreWords": [],
     "import": []

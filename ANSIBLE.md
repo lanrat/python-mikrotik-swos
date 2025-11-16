@@ -74,6 +74,10 @@ git submodule add https://github.com/lanrat/python-mikrotik-swos.git modules/swo
 # Initialize and update the submodule
 git submodule update --init --recursive
 
+# Install the swos Python library from the submodule in editable mode
+# This ensures the Ansible module can import the swos package
+pip install -e modules/swos
+
 # Commit the submodule addition
 git add .gitmodules modules/swos
 git commit -m "Add swos module as submodule"
@@ -91,9 +95,14 @@ library = ./modules/swos/ansible
 ```bash
 # New clones
 git clone --recursive https://github.com/yourname/your-ansible-repo.git
+cd your-ansible-repo
+
+# Install the swos library from the submodule
+pip install -e modules/swos
 
 # Existing clones
 git submodule update --init --recursive
+pip install -e modules/swos
 ```
 
 **Update submodule to latest version:**
@@ -104,7 +113,16 @@ git pull origin main
 cd ../..
 git add modules/swos
 git commit -m "Update swos module"
+# No need to reinstall - editable mode automatically uses the updated code
 ```
+
+**Benefits of this approach:**
+
+- Single source of truth: Ansible module and Python library are from the same submodule
+- No version mismatches between module and library
+- Version controlled via git submodule
+- Editable mode means updates to the submodule are immediately reflected
+- Can pin to specific versions by checking out tags in the submodule
 
 ### Method 2: Copy Module Files
 
@@ -130,9 +148,9 @@ cp /path/to/site-packages/ansible/swos.py library/
 
 1. Create inventory file from example:
 
-```bash
-cp inventory.example.yml inventory.yml
-```
+   ```bash
+   cp inventory.example.yml inventory.yml
+   ```
 
 2. Edit `inventory.yml` with your switch details
 

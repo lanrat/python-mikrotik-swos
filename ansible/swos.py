@@ -386,6 +386,40 @@ except ImportError:
     HAS_SWOS_API = False
 
 
+def normalize_yaml_boolean(value, on_value='on', off_value='off'):
+    """
+    Normalize YAML boolean values to strings.
+
+    In YAML, 'off', 'no', 'false' are parsed as boolean False,
+    and 'on', 'yes', 'true' are parsed as boolean True.
+    This function converts them back to the expected string values.
+
+    Args:
+        value: The value to normalize
+        on_value: String to return for True (default: 'on')
+        off_value: String to return for False (default: 'off')
+
+    Returns:
+        Normalized string value, or original value if not a boolean
+    """
+    if value is True:
+        return on_value
+    elif value is False:
+        return off_value
+    return value
+
+
+def normalize_poe_config(poe_cfg):
+    """
+    Normalize PoE configuration values that may have been parsed as YAML booleans.
+
+    Specifically handles 'mode: off' being parsed as mode: False.
+    """
+    if 'mode' in poe_cfg:
+        poe_cfg['mode'] = normalize_yaml_boolean(poe_cfg['mode'], on_value='on', off_value='off')
+    return poe_cfg
+
+
 def port_vlan_matches(current, desired):
     """Check if current port VLAN config matches desired config"""
     matches = True
@@ -641,6 +675,8 @@ def run_module():
         if config and 'poe' in config:
             current_poe = get_poe(url, username, password)
             for poe_cfg in config['poe']:
+                # Normalize YAML booleans (off/on parsed as False/True)
+                poe_cfg = normalize_poe_config(poe_cfg.copy())
                 port_num = poe_cfg['port']
 
                 if port_num < 1 or port_num > len(current_poe):

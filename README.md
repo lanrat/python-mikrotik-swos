@@ -21,6 +21,7 @@ Python library and tools for managing MikroTik SwOS (SwitchOS) and SwOS Lite (Sw
 
 **Read:** System info, ports, PoE, LAG/LACP, per-port VLANs, VLAN table, host table, SFP info, SNMP
 **Write:** System settings, port config, PoE settings, LAG/LACP, per-port VLANs, VLAN table, SNMP
+**SwOS-only:** VLAN names, isolation, learning, mirror settings (not available on SwOS Lite)
 **Note:** All configuration changes are immediately applied and persisted by the switch.
 
 ## Requirements

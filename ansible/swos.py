@@ -177,6 +177,18 @@ options:
                         description: Enable IGMP snooping for this VLAN
                         type: bool
                         default: false
+                    name:
+                        description: VLAN name (SwOS only, ignored on SwOS Lite)
+                        type: str
+                    isolation:
+                        description: Enable port isolation for this VLAN (SwOS only, ignored on SwOS Lite)
+                        type: bool
+                    learning:
+                        description: Enable MAC learning for this VLAN (SwOS only, ignored on SwOS Lite)
+                        type: bool
+                    mirror:
+                        description: Enable traffic mirroring for this VLAN (SwOS only, ignored on SwOS Lite)
+                        type: bool
             snmp:
                 description:
                     - SNMP configuration dictionary
@@ -265,7 +277,7 @@ EXAMPLES = r'''
           mode: "active"
           group: 1
 
-# Configure VLANs
+# Configure per-port VLANs
 - name: Configure port VLANs
   swos:
     host: 192.168.88.1
@@ -279,6 +291,24 @@ EXAMPLES = r'''
           vlan_mode: "Optional"
           vlan_receive: "Any"
           default_vlan_id: 1
+
+# Configure VLAN table
+- name: Configure VLAN table with SwOS-only features
+  swos:
+    host: 192.168.88.1
+    config:
+      vlans:
+        - vlan_id: 1
+          member_ports: [1, 2, 3, 4, 5, 6, 7, 8]
+        - vlan_id: 10
+          member_ports: [1, 2, 3]
+          igmp_snooping: true
+          name: "Management"        # SwOS only
+        - vlan_id: 20
+          member_ports: [4, 5, 6]
+          name: "Servers"           # SwOS only
+          isolation: true           # SwOS only
+          learning: true            # SwOS only
 
 # Configure SNMP
 - name: Configure SNMP settings
@@ -535,7 +565,8 @@ def system_config_matches(current, desired):
 def vlans_match(current_vlans, desired_vlans):
     """Check if current VLAN table matches desired VLAN table
 
-    Compares two lists of VLANs by vlan_id, member_ports, and igmp_snooping.
+    Compares two lists of VLANs by vlan_id, member_ports, igmp_snooping,
+    and SwOS-only fields (name, isolation, learning, mirror).
     Returns True if they match exactly (same VLANs with same settings).
     """
     # Create dictionaries keyed by vlan_id for easier comparison
@@ -560,6 +591,29 @@ def vlans_match(current_vlans, desired_vlans):
         desired_igmp = desired.get('igmp_snooping', False)
         if current_igmp != desired_igmp:
             return False
+
+        # Compare SwOS-only fields (only if specified in desired config)
+        # These are None on SwOS Lite, so we only compare if the desired config has them
+        if 'name' in desired:
+            current_name = current.get('name') or ''
+            desired_name = desired.get('name') or ''
+            if current_name != desired_name:
+                return False
+
+        if 'isolation' in desired:
+            current_isolation = current.get('isolation') if current.get('isolation') is not None else False
+            if current_isolation != desired['isolation']:
+                return False
+
+        if 'learning' in desired:
+            current_learning = current.get('learning') if current.get('learning') is not None else True
+            if current_learning != desired['learning']:
+                return False
+
+        if 'mirror' in desired:
+            current_mirror = current.get('mirror') if current.get('mirror') is not None else False
+            if current_mirror != desired['mirror']:
+                return False
 
     return True
 
@@ -797,9 +851,23 @@ def run_module():
                 for vlan_id in common_vlans:
                     curr = current_dict[vlan_id]
                     des = desired_dict[vlan_id]
+                    is_modified = False
+
                     if sorted(curr['member_ports']) != sorted(des['member_ports']):
-                        modified_vlans.append(vlan_id)
+                        is_modified = True
                     elif curr.get('igmp_snooping', False) != des.get('igmp_snooping', False):
+                        is_modified = True
+                    # SwOS-only fields
+                    elif 'name' in des and (curr.get('name') or '') != (des.get('name') or ''):
+                        is_modified = True
+                    elif 'isolation' in des and curr.get('isolation', False) != des['isolation']:
+                        is_modified = True
+                    elif 'learning' in des and curr.get('learning', True) != des['learning']:
+                        is_modified = True
+                    elif 'mirror' in des and curr.get('mirror', False) != des['mirror']:
+                        is_modified = True
+
+                    if is_modified:
                         modified_vlans.append(vlan_id)
 
                 if modified_vlans:

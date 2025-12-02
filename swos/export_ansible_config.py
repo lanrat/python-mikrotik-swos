@@ -123,6 +123,15 @@ def export_switch_config(host, username, password):
                 }
                 if vlan.get('igmp_snooping') is not None:
                     vlan_config['igmp_snooping'] = vlan['igmp_snooping']
+                # SwOS-only fields (None on SwOS Lite)
+                if vlan.get('name') is not None and vlan.get('name') != '':
+                    vlan_config['name'] = vlan['name']
+                if vlan.get('isolation') is not None:
+                    vlan_config['isolation'] = vlan['isolation']
+                if vlan.get('learning') is not None:
+                    vlan_config['learning'] = vlan['learning']
+                if vlan.get('mirror') is not None:
+                    vlan_config['mirror'] = vlan['mirror']
                 # Only include VLANs that have members
                 if vlan_config.get('member_ports'):
                     vlan_configs.append(vlan_config)

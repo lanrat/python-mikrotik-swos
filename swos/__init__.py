@@ -166,6 +166,10 @@ def get_vlans(url: str, username: str, password: str) -> List[dict]:
         - vlan_id: VLAN ID (1-4094)
         - member_ports: List of port numbers in this VLAN
         - igmp_snooping: IGMP snooping enabled (boolean)
+        - name: VLAN name (SwOS only, None on SwOS Lite)
+        - isolation: Port isolation enabled (SwOS only, None on SwOS Lite)
+        - learning: MAC learning enabled (SwOS only, None on SwOS Lite)
+        - mirror: Traffic mirroring enabled (SwOS only, None on SwOS Lite)
     """
     adapter = _get_adapter(url, username, password)
     data = adapter.get('vlan_table')
@@ -185,11 +189,29 @@ def get_vlans(url: str, username: str, password: str) -> List[dict]:
         # Decode port mask to list
         member_ports = decode_port_mask(port_mask, port_count)
 
-        vlans.append({
+        vlan_entry = {
             'vlan_id': vlan_id,
             'member_ports': member_ports,
             'igmp_snooping': igmp_snooping,
-        })
+        }
+
+        # SwOS-only fields (None on SwOS Lite)
+        vlan_name = get_field(vlan, fm, 'vlan_name')
+        if vlan_name is not None:
+            vlan_entry['name'] = decode_hex_string(vlan_name)
+        else:
+            vlan_entry['name'] = None
+
+        vlan_isolation = get_field(vlan, fm, 'vlan_isolation')
+        vlan_entry['isolation'] = bool(vlan_isolation) if vlan_isolation is not None else None
+
+        vlan_learning = get_field(vlan, fm, 'vlan_learning')
+        vlan_entry['learning'] = bool(vlan_learning) if vlan_learning is not None else None
+
+        vlan_mirror = get_field(vlan, fm, 'vlan_mirror')
+        vlan_entry['mirror'] = bool(vlan_mirror) if vlan_mirror is not None else None
+
+        vlans.append(vlan_entry)
 
     return vlans
 
@@ -893,6 +915,10 @@ def set_vlans(url, username, password, vlans):
             - vlan_id: VLAN ID (1-4094, required)
             - member_ports: List of port numbers (1-based, required)
             - igmp_snooping: IGMP snooping enabled (boolean, optional, defaults to False)
+            - name: VLAN name (SwOS only, optional)
+            - isolation: Port isolation enabled (SwOS only, optional)
+            - learning: MAC learning enabled (SwOS only, optional)
+            - mirror: Traffic mirroring enabled (SwOS only, optional)
 
     Returns:
         Response text from POST request
@@ -905,6 +931,7 @@ def set_vlans(url, username, password, vlans):
         vlans = [
             {'vlan_id': 1, 'member_ports': [1, 2, 3, 4]},
             {'vlan_id': 10, 'member_ports': [5, 6], 'igmp_snooping': True},
+            {'vlan_id': 20, 'member_ports': [7, 8], 'name': 'Management', 'isolation': True},
         ]
         set_vlans(url, username, password, vlans)
     """
@@ -930,11 +957,26 @@ def set_vlans(url, username, password, vlans):
                 raise ValueError(f"Port number must be between 1 and {port_count}, got {port_num}")
             port_mask |= (1 << (port_num - 1))
 
-        vlan_array.append({
+        vlan_entry = {
             fm.vlan_id: vlan_id,
             fm.vlan_members: port_mask,
             fm.vlan_igmp: 0x01 if igmp_snooping else 0x00,
-        })
+        }
+
+        # SwOS-only fields (ignored on SwOS Lite)
+        if fm.vlan_name and 'name' in vlan:
+            vlan_entry[fm.vlan_name] = encode_hex_string(vlan['name'])
+
+        if fm.vlan_isolation and 'isolation' in vlan:
+            vlan_entry[fm.vlan_isolation] = 0x01 if vlan['isolation'] else 0x00
+
+        if fm.vlan_learning and 'learning' in vlan:
+            vlan_entry[fm.vlan_learning] = 0x01 if vlan['learning'] else 0x00
+
+        if fm.vlan_mirror and 'mirror' in vlan:
+            vlan_entry[fm.vlan_mirror] = 0x01 if vlan['mirror'] else 0x00
+
+        vlan_array.append(vlan_entry)
 
     # Build array POST data
     post_data = build_post_array(vlan_array)

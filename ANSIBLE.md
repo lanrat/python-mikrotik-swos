@@ -57,9 +57,16 @@ vlans:
   - vlan_id: 64
     member_ports: [3, 4, 5]
     igmp_snooping: true
+    name: "Guest"           # SwOS only
   - vlan_id: 100
     member_ports: [9, 10]
+    name: "Management"      # SwOS only
+    isolation: true         # SwOS only
+    learning: true          # SwOS only
+    mirror: false           # SwOS only
 ```
+
+**Note:** The `name`, `isolation`, `learning`, and `mirror` fields are only supported on SwOS (CRS series). They are ignored on SwOS Lite (CSS series).
 
 ## Installation Methods
 

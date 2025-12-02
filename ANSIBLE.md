@@ -133,12 +133,32 @@ mkdir -p library
 cp ansible/swos.py library/
 ```
 
+**Update to latest version:**
+
+```bash
+# Pull latest changes from the repository
+git pull origin main
+
+# Re-copy the module file
+cp ansible/swos.py library/
+```
+
 ### Method 3: Python Package + Module Copy
 
 Install the Python package globally or in a virtualenv, then copy just the Ansible module:
 
 ```bash
 pip install mikrotik-swos
+cp /path/to/site-packages/ansible/swos.py library/
+```
+
+**Update to latest version:**
+
+```bash
+# Upgrade the Python package
+pip install --upgrade mikrotik-swos
+
+# Re-copy the module file
 cp /path/to/site-packages/ansible/swos.py library/
 ```
 

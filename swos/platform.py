@@ -12,7 +12,7 @@ from typing import Tuple, Optional
 
 from .core import parse_js_object, decode_hex_string
 from .field_maps import FieldMap, get_field
-from .css_map import CSS_FIELD_MAP
+from .swos_lite_map import SWOS_LITE_FIELD_MAP
 from .swos_map import SWOS_FIELD_MAP
 
 
@@ -145,7 +145,7 @@ def get_field_map(platform_type: str) -> FieldMap:
         ValueError: If platform type is unsupported
     """
     if platform_type == PlatformType.SWOS_LITE:
-        return CSS_FIELD_MAP
+        return SWOS_LITE_FIELD_MAP
     elif platform_type == PlatformType.SWOS:
         return SWOS_FIELD_MAP
     elif platform_type == PlatformType.ROUTEROS:

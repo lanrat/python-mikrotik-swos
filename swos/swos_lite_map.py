@@ -10,7 +10,7 @@ Tested with:
 from .field_maps import FieldMap
 
 
-CSS_FIELD_MAP = FieldMap(
+SWOS_LITE_FIELD_MAP = FieldMap(
     platform_name="SwOS Lite",
     platform_type="swos-lite",
 
@@ -93,6 +93,7 @@ CSS_FIELD_MAP = FieldMap(
     vlan_port_receive="i17",
     vlan_port_default_id="i18",
     vlan_port_force_id="i19",
+    vlan_port_modes=('Disabled', 'Optional', 'Strict'),
     vlan_port_forwarding=None,  # SwOS only
     vlan_port_lock=None,  # SwOS only
     vlan_port_ingress_mirror=None,  # SwOS only

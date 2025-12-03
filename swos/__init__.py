@@ -228,7 +228,9 @@ def get_port_vlans(url: str, username: str, password: str) -> List[dict]:
     Returns:
         List of per-port VLAN configs:
         - port_number: Port number (1-based)
-        - vlan_mode: 'Disabled', 'Optional', or 'Strict'
+        - vlan_mode: Platform-specific mode:
+            - SwOS Lite: 'Disabled', 'Optional', 'Strict'
+            - SwOS: 'Disabled', 'Optional', 'Enabled', 'Strict'
         - vlan_receive: 'Any', 'Only Tagged', or 'Only Untagged'
         - default_vlan_id: Default VLAN ID for untagged packets
         - force_vlan_id: Force default VLAN (boolean)
@@ -237,12 +239,10 @@ def get_port_vlans(url: str, username: str, password: str) -> List[dict]:
     data = adapter.get('vlan_port')
     fm = adapter.field_map
 
-    # VLAN mode mapping
-    vlan_modes = {
-        0: 'Disabled',
-        1: 'Optional',
-        2: 'Strict',
-    }
+    # VLAN mode mapping from platform-specific field map
+    # SwOS: ('Disabled', 'Optional', 'Enabled', 'Strict')
+    # SwOS Lite: ('Disabled', 'Optional', 'Strict')
+    vlan_mode_names = fm.vlan_port_modes
 
     # VLAN receive mode mapping
     receive_modes = {
@@ -258,9 +258,14 @@ def get_port_vlans(url: str, username: str, password: str) -> List[dict]:
 
     ports = []
     for i in range(len(modes)):
+        mode_val = modes[i]
+        if mode_val < len(vlan_mode_names):
+            mode_name = vlan_mode_names[mode_val]
+        else:
+            mode_name = f'Unknown({mode_val})'
         ports.append({
             'port_number': i + 1,
-            'vlan_mode': vlan_modes.get(modes[i], f'Unknown({modes[i]})'),
+            'vlan_mode': mode_name,
             'vlan_receive': receive_modes.get(receive[i], f'Unknown({receive[i]})'),
             'default_vlan_id': default_vlans[i],
             'force_vlan_id': bool(force_vlan_mask & (1 << i)),
@@ -846,7 +851,9 @@ def set_port_vlan(url, username, password, port_number, vlan_mode=None, vlan_rec
         username: Username
         password: Password
         port_number: Port number (1-based)
-        vlan_mode: VLAN mode - 'Disabled', 'Optional', 'Strict' (optional)
+        vlan_mode: VLAN mode (optional):
+            - SwOS Lite: 'Disabled', 'Optional', 'Strict'
+            - SwOS: 'Disabled', 'Optional', 'Enabled', 'Strict'
         vlan_receive: Receive mode - 'Any', 'Only Tagged', 'Only Untagged' (optional)
         default_vlan_id: Default VLAN ID (optional)
         force_vlan_id: Force VLAN ID - True/False (optional)
@@ -855,7 +862,7 @@ def set_port_vlan(url, username, password, port_number, vlan_mode=None, vlan_rec
         Response text from POST request
 
     Raises:
-        ValueError: If port number is invalid
+        ValueError: If port number or vlan_mode is invalid
         requests.HTTPError: If request fails
     """
     adapter = _get_adapter(url, username, password)
@@ -873,7 +880,11 @@ def set_port_vlan(url, username, password, port_number, vlan_mode=None, vlan_rec
 
     # Update the specific port
     if vlan_mode is not None:
-        mode_map = {'Disabled': 0, 'Optional': 1, 'Strict': 2}
+        # Build reverse mapping from platform-specific mode names
+        mode_map = {name: idx for idx, name in enumerate(fm.vlan_port_modes)}
+        if vlan_mode not in mode_map:
+            valid_modes = ', '.join(f"'{m}'" for m in fm.vlan_port_modes)
+            raise ValueError(f"Invalid vlan_mode '{vlan_mode}'. Valid modes: {valid_modes}")
         data[fm.vlan_port_mode][port_idx] = mode_map[vlan_mode]
 
     if vlan_receive is not None:

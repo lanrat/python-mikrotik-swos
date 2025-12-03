@@ -46,7 +46,8 @@ lag:
 
 port_vlans:
   - port: 3
-    vlan_mode: "Enabled"
+    vlan_mode: "Enabled"       # SwOS: Disabled/Optional/Enabled/Strict
+                               # SwOS Lite: Disabled/Optional/Strict
     vlan_receive: "Only Untagged"
     default_vlan_id: 64
     force_vlan_id: false

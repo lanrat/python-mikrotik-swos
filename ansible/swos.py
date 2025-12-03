@@ -144,7 +144,9 @@ options:
                         required: true
                         type: int
                     vlan_mode:
-                        description: VLAN mode
+                        description: >
+                            VLAN mode. SwOS supports all 4 modes.
+                            SwOS Lite only supports Disabled, Optional, Strict (not Enabled).
                         type: str
                         choices: ['Disabled', 'Optional', 'Enabled', 'Strict']
                     vlan_receive:

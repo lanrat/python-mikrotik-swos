@@ -97,6 +97,7 @@ SWOS_FIELD_MAP = FieldMap(
     vlan_port_receive="vlni",
     vlan_port_default_id="dvid",
     vlan_port_force_id="fvid",
+    vlan_port_modes=('Disabled', 'Optional', 'Enabled', 'Strict'),
     # SwOS-specific forwarding fields
     vlan_port_forwarding="fp",  # Note: fp1, fp2, etc. per port
     vlan_port_lock="lck",

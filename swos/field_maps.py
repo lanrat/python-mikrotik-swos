@@ -102,6 +102,10 @@ class FieldMap:
     vlan_port_receive: str = ""
     vlan_port_default_id: str = ""
     vlan_port_force_id: str = ""
+    # Platform-specific VLAN mode names (indexed by mode value)
+    # SwOS: ('Disabled', 'Optional', 'Enabled', 'Strict')
+    # SwOS Lite: ('Disabled', 'Optional', 'Strict')
+    vlan_port_modes: tuple = ()
     vlan_port_forwarding: Optional[str] = None  # SwOS only (fp1, fp2, etc.)
     vlan_port_lock: Optional[str] = None  # SwOS only
     vlan_port_ingress_mirror: Optional[str] = None  # SwOS only
@@ -127,7 +131,7 @@ def get_field(data: dict, field_map: FieldMap, field_name: str) -> any:
         Field value, or None if not found
 
     Example:
-        >>> get_field(data, css_map, 'system_identity')
+        >>> get_field(data, swos_lite_map, 'system_identity')
         # Returns data['i05'] for SwOS Lite
         # Returns data['id'] for SwOS
     """
@@ -148,7 +152,7 @@ def set_field(data: dict, field_map: FieldMap, field_name: str, value: any) -> N
         value: Value to set
 
     Example:
-        >>> set_field(data, css_map, 'system_identity', '5357382d4f7074696373')
+        >>> set_field(data, swos_lite_map, 'system_identity', '5357382d4f7074696373')
         # Sets data['i05'] for SwOS Lite
         # Sets data['id'] for SwOS
     """

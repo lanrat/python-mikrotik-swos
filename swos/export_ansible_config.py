@@ -148,12 +148,14 @@ def export_switch_config(host, username, password):
                     'vlan_mode': port_vlan.get('vlan_mode'),
                     'vlan_receive': port_vlan.get('vlan_receive'),
                     'default_vlan_id': port_vlan.get('default_vlan_id'),
+                    'force_vlan_id': port_vlan.get('force_vlan_id'),
                 }
                 # Remove None values and only include non-default configs
                 port_vlan_config = {k: v for k, v in port_vlan_config.items() if v is not None}
                 if port_vlan_config.get('vlan_mode') != 'Disabled' or \
                    port_vlan_config.get('vlan_receive') != 'Any' or \
-                   port_vlan_config.get('default_vlan_id', 1) != 1:
+                   port_vlan_config.get('default_vlan_id', 1) != 1 or \
+                   port_vlan_config.get('force_vlan_id', False):
                     port_vlan_configs.append(port_vlan_config)
             if port_vlan_configs:
                 config['port_vlans'] = port_vlan_configs

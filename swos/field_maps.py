@@ -32,6 +32,7 @@ class FieldMap:
     endpoint_vlan_port: str = "fwd.b"
     endpoint_vlan_table: str = "vlan.b"
     endpoint_snmp: str = "snmp.b"
+    endpoint_password: str = "!pwd.b"
 
     # System fields (sys.b)
     system_uptime: str = ""

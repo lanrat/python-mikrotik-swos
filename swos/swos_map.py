@@ -22,6 +22,7 @@ SWOS_FIELD_MAP = FieldMap(
     endpoint_vlan_port="fwd.b",
     endpoint_vlan_table="vlan.b",
     endpoint_snmp="snmp.b",
+    endpoint_password="!pwd.b",
 
     # System fields (sys.b)
     system_uptime="upt",

@@ -212,3 +212,77 @@ def build_post_array(array_of_dicts):
         pairs = [f'{k}:{format_post_value(v)}' for k, v in obj.items()]
         obj_strings.append('{' + ','.join(pairs) + '}')
     return '[' + ','.join(obj_strings) + ']'
+
+
+def rc4_encrypt(key: bytes, data: bytes) -> bytes:
+    """
+    RC4 stream cipher encryption.
+
+    Args:
+        key: Encryption key (bytes)
+        data: Data to encrypt (bytes)
+
+    Returns:
+        Encrypted data (bytes)
+    """
+    # Key schedule
+    S = list(range(256))
+    j = 0
+    for i in range(256):
+        j = (j + key[i % len(key)] + S[i]) & 255
+        S[i], S[j] = S[j], S[i]
+
+    # Generate keystream and XOR
+    i = j = 0
+    result = []
+    for byte in data:
+        i = (i + 1) & 255
+        j = (j + S[i]) & 255
+        S[i], S[j] = S[j], S[i]
+        k = S[(S[i] + S[j]) & 255]
+        result.append(byte ^ k)
+    return bytes(result)
+
+
+def encode_swos_password(old_password: str, new_password: str) -> str:
+    """
+    Encode password using SwOS Da(a,b) algorithm.
+
+    This implements the password encoding used by SwOS's JavaScript
+    frontend when changing passwords via the web interface.
+
+    Args:
+        old_password: Current password
+        new_password: New password to set
+
+    Returns:
+        Hex-encoded password string for POST to /!pwd.b
+    """
+    # Build 32-byte buffer: old_pwd + 0x00 + new_pwd + zero padding
+    buf = bytearray(32)
+    idx = 0
+    for c in old_password:
+        if idx < 32:
+            buf[idx] = ord(c)
+            idx += 1
+    if idx < 32:
+        buf[idx] = 0  # null terminator
+        idx += 1
+    for c in new_password:
+        if idx < 32:
+            buf[idx] = ord(c)
+            idx += 1
+
+    # Prepare RC4 key from old password (or "*" if empty)
+    key_str = old_password if old_password else "*"
+    while len(key_str) < 16:
+        key_str += key_str
+    key_str = key_str[:16]
+    key = key_str.encode('ascii')
+
+    # XOR buffer with 64 RC4 bytes (wrapping at 32)
+    rc4_bytes = rc4_encrypt(key, bytes(64))
+    for i in range(64):
+        buf[i & 31] ^= rc4_bytes[i]
+
+    return buf.hex()

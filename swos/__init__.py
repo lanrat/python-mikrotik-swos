@@ -1131,3 +1131,49 @@ def set_system(url, username, password, identity=None, address_acquisition=None,
     post_data = build_post_data(data)
 
     return adapter.post('system', post_data)
+
+
+def set_password(url: str, username: str, current_password: str, new_password: str) -> str:
+    """
+    Change the admin password on the switch.
+
+    Uses SwOS's proprietary password encoding algorithm with RC4 encryption.
+
+    Args:
+        url: Switch URL (e.g., 'http://192.168.88.1')
+        username: Username (typically 'admin')
+        current_password: Current password for authentication
+        new_password: New password to set
+
+    Returns:
+        Response text from the switch
+
+    Raises:
+        requests.HTTPError: If password change fails
+
+    Example:
+        >>> set_password('http://192.168.88.1', 'admin', 'oldpass', 'newpass')
+        'OK'
+    """
+    from .core import encode_swos_password
+
+    auth = HTTPDigestAuth(username, current_password)
+
+    # Encode the password using SwOS algorithm
+    pwd_encoded = encode_swos_password(current_password, new_password)
+
+    # Build POST data in SwOS format
+    post_data = "{pwd:'" + pwd_encoded + "'}"
+
+    # POST to password endpoint
+    url_base = url.rstrip('/')
+    response = requests.post(
+        f"{url_base}/!pwd.b",
+        data=post_data,
+        auth=auth,
+        timeout=10,
+        verify=False
+    )
+    response.raise_for_status()
+
+    return response.text

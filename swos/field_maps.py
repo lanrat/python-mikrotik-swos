@@ -32,6 +32,7 @@ class FieldMap:
     endpoint_vlan_port: str = "fwd.b"
     endpoint_vlan_table: str = "vlan.b"
     endpoint_snmp: str = "snmp.b"
+    endpoint_password: str = "!pwd.b"
 
     # System fields (sys.b)
     system_uptime: str = ""
@@ -76,11 +77,12 @@ class FieldMap:
     poe_priority: str = ""
     poe_voltage: str = ""
     poe_status: str = ""
+    poe_standard: Optional[str] = None  # PoE standard (af/at/bt) - SwOS only
     poe_current: str = ""
     poe_voltage_actual: str = ""
     poe_power: str = ""
-    poe_lldp: str = ""
-    poe_lldp_power: str = ""
+    poe_lldp: Optional[str] = None  # May not be available on all devices
+    poe_lldp_power: Optional[str] = None  # May not be available on all devices
 
     # LAG fields (lacp.b)
     lag_mode: str = ""

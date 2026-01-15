@@ -22,6 +22,7 @@ SWOS_LITE_FIELD_MAP = FieldMap(
     endpoint_vlan_port="fwd.b",
     endpoint_vlan_table="vlan.b",
     endpoint_snmp="snmp.b",
+    endpoint_password="!pwd.b",
 
     # System fields (sys.b)
     system_uptime="i01",
@@ -67,6 +68,7 @@ SWOS_LITE_FIELD_MAP = FieldMap(
     poe_priority="i02",
     poe_voltage="i03",
     poe_status="i04",
+    poe_standard=None,  # SwOS only
     poe_current="i05",
     poe_voltage_actual="i06",
     poe_power="i07",

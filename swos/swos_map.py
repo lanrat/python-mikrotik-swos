@@ -63,18 +63,17 @@ SWOS_FIELD_MAP = FieldMap(
     port_sfp_offset="sfpo",
 
     # PoE fields (poe.b)
-    # Note: These are educated guesses based on SwOS Lite mappings
-    # Need to verify with a PoE-capable SwOS device (e.g., CRS328-24P-4S+)
-    # For now, using likely field names based on pattern
-    poe_mode="mode",  # Likely
-    poe_priority="prio",  # Likely
-    poe_voltage="volt",  # Likely
-    poe_status="stat",  # Likely
-    poe_current="cur",  # Likely
-    poe_voltage_actual="volr",  # Likely
-    poe_power="pwr",  # Likely
-    poe_lldp="lldp",  # Likely
-    poe_lldp_power="lldpp",  # Likely
+    # Verified with CRS328-24P-4S+ (SwOS 2.18)
+    poe_mode="poe",
+    poe_priority="prio",
+    poe_voltage="lvl",  # Voltage level config (auto/low/high)
+    poe_status="poes",
+    poe_standard="std",  # PoE standard (af/at/bt)
+    poe_current="curr",
+    poe_voltage_actual="volt",  # Actual voltage reading
+    poe_power="pwr",
+    poe_lldp="lldp",  # LLDP bitmask
+    poe_lldp_power="ldpw",
 
     # LAG fields (lacp.b)
     lag_mode="mode",

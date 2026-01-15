@@ -67,6 +67,7 @@ SWOS_LITE_FIELD_MAP = FieldMap(
     poe_priority="i02",
     poe_voltage="i03",
     poe_status="i04",
+    poe_standard=None,  # SwOS only
     poe_current="i05",
     poe_voltage_actual="i06",
     poe_power="i07",

@@ -208,6 +208,50 @@ options:
                     location:
                         description: Device location
                         type: str
+            vlan_groups:
+                description:
+                    - Dictionary of named VLAN groups for reuse across ports
+                    - Keys are group names, values are lists of VLAN IDs
+                    - Used with port_config to reduce redundancy
+                type: dict
+            port_config:
+                description:
+                    - Simplified per-port VLAN configuration using access/trunk model
+                    - Alternative to the detailed port_vlans format
+                    - Automatically generates port_vlans and vlans sections
+                    - Can be used alongside vlans section for additional settings (igmp_snooping, etc.)
+                type: dict
+                suboptions:
+                    mode:
+                        description: Port mode
+                        type: str
+                        choices: ['access', 'trunk']
+                        required: true
+                    vlan:
+                        description: VLAN ID for access ports (required for access mode)
+                        type: int
+                    native_vlan:
+                        description: Native VLAN ID for trunk ports (default 1)
+                        type: int
+                        default: 1
+                    allowed_vlans:
+                        description: List of allowed VLAN IDs for trunk ports
+                        type: list
+                        elements: int
+                    vlan_group:
+                        description: >
+                            Reference to a vlan_groups entry (alternative to allowed_vlans).
+                            If neither allowed_vlans nor vlan_group is specified for a trunk port,
+                            defaults to all VLANs referenced in the configuration.
+                        type: str
+                    vlan_mode:
+                        description: >
+                            Override the default vlan_mode. By default, trunk ports use 'Optional'
+                            and access ports use 'Strict'. Use this to specify 'Enabled' for SwOS
+                            switches that need stricter 802.1Q enforcement. Note that 'Enabled' is
+                            not supported on SwOS Lite (CSS series).
+                        type: str
+                        choices: ['Disabled', 'Optional', 'Enabled', 'Strict']
     port_vlans:
         description:
             - List of port VLAN configurations (deprecated, use config.port_vlans)
@@ -279,7 +323,7 @@ EXAMPLES = r'''
           mode: "active"
           group: 1
 
-# Configure per-port VLANs
+# Configure per-port VLANs (detailed format)
 - name: Configure port VLANs
   swos:
     host: 192.168.88.1
@@ -293,6 +337,49 @@ EXAMPLES = r'''
           vlan_mode: "Optional"
           vlan_receive: "Any"
           default_vlan_id: 1
+
+# Simplified port configuration using access/trunk model
+# This automatically generates port_vlans and vlans sections
+- name: Configure ports with simplified access/trunk format
+  swos:
+    host: 192.168.88.1
+    config:
+      vlan_groups:
+        all_vlans: [1, 64, 539]
+        servers: [1, 64]
+      port_config:
+        1:
+          mode: trunk
+          native_vlan: 1
+          vlan_group: all_vlans      # Reference a VLAN group
+        2:
+          mode: trunk
+          native_vlan: 1
+          allowed_vlans: [1, 64]     # Or specify VLANs directly
+        3:
+          mode: access
+          vlan: 64
+        9:
+          mode: trunk                # No allowed_vlans = all referenced VLANs
+          native_vlan: 1
+
+# Simplified format with additional VLAN settings
+- name: Configure ports with IGMP snooping
+  swos:
+    host: 192.168.88.1
+    config:
+      port_config:
+        1:
+          mode: trunk
+          native_vlan: 1
+          allowed_vlans: [1, 64]
+        3:
+          mode: access
+          vlan: 64
+      vlans:
+        # These settings are merged with auto-generated VLAN entries
+        - vlan_id: 64
+          igmp_snooping: true
 
 # Configure VLAN table
 - name: Configure VLAN table with SwOS-only features
@@ -621,6 +708,238 @@ def vlans_match(current_vlans, desired_vlans):
     return True
 
 
+# ============================================================================
+# Simplified port_config Format Preprocessing
+# ============================================================================
+
+def uses_simplified_format(config):
+    """Detect if config uses simplified port_config format."""
+    return config and 'port_config' in config
+
+
+def validate_port_config_entry(port_cfg, port_num):
+    """Validate a single port configuration entry."""
+    mode = port_cfg.get('mode')
+    if mode not in ('access', 'trunk'):
+        raise ValueError(f"Port {port_num}: mode must be 'access' or 'trunk', got '{mode}'")
+    if mode == 'access' and 'vlan' not in port_cfg:
+        raise ValueError(f"Port {port_num}: access mode requires 'vlan' field")
+
+    # Validate vlan_mode override if provided
+    vlan_mode = port_cfg.get('vlan_mode')
+    if vlan_mode is not None:
+        valid_modes = ('Disabled', 'Optional', 'Enabled', 'Strict')
+        if vlan_mode not in valid_modes:
+            raise ValueError(f"Port {port_num}: vlan_mode must be one of {valid_modes}, got '{vlan_mode}'")
+
+
+def collect_all_vlans(port_config, vlan_groups, existing_vlans):
+    """Collect all VLANs referenced anywhere in the configuration."""
+    all_vlans = set()
+
+    for port_cfg in port_config.values():
+        if 'vlan' in port_cfg:
+            all_vlans.add(port_cfg['vlan'])
+        if 'native_vlan' in port_cfg:
+            all_vlans.add(port_cfg['native_vlan'])
+        if 'allowed_vlans' in port_cfg:
+            all_vlans.update(port_cfg['allowed_vlans'])
+
+    for group_vlans in vlan_groups.values():
+        all_vlans.update(group_vlans)
+
+    for vlan in existing_vlans:
+        all_vlans.add(vlan['vlan_id'])
+
+    return all_vlans
+
+
+def get_allowed_vlans_for_port(port_cfg, port_num, vlan_groups, all_vlans, warnings):
+    """Get the set of allowed VLANs for a port.
+
+    Args:
+        port_cfg: Port configuration dict
+        port_num: Port number (for warning messages)
+        vlan_groups: Dictionary of VLAN group definitions
+        all_vlans: Set of all VLANs referenced in config
+        warnings: List to append warning messages to
+
+    Returns:
+        Set of allowed VLAN IDs for this port
+    """
+    mode = port_cfg.get('mode', 'access')
+
+    if mode == 'access':
+        return {port_cfg['vlan']}
+
+    # Trunk mode
+    if 'allowed_vlans' in port_cfg:
+        vlans = set(port_cfg['allowed_vlans'])
+    elif 'vlan_group' in port_cfg:
+        group = port_cfg['vlan_group']
+        if group not in vlan_groups:
+            raise ValueError(f"Unknown vlan_group: '{group}'")
+        vlans = set(vlan_groups[group])
+    else:
+        # Default: all VLANs referenced anywhere in config
+        vlans = set(all_vlans)
+
+    # Always include native VLAN for trunk ports (required for 802.1Q)
+    native = port_cfg.get('native_vlan', 1)
+    if native not in vlans:
+        warnings.append(
+            f"Port {port_num}: native_vlan {native} not in allowed VLANs, "
+            f"automatically added (native VLAN is always allowed on trunk ports)"
+        )
+        vlans.add(native)
+    return vlans
+
+
+def transform_port_to_detailed(port_num, port_cfg):
+    """Transform a single port config to detailed port_vlans format.
+
+    Supports optional vlan_mode override for cases where the default
+    mode (Optional for trunk, Strict for access) isn't appropriate.
+    """
+    mode = port_cfg.get('mode', 'access')
+
+    # Check for vlan_mode override
+    vlan_mode_override = port_cfg.get('vlan_mode')
+
+    if mode == 'access':
+        return {
+            'port': port_num,
+            'vlan_mode': vlan_mode_override or 'Strict',
+            'vlan_receive': 'Only Untagged',
+            'default_vlan_id': port_cfg['vlan'],
+            'force_vlan_id': True
+        }
+    elif mode == 'trunk':
+        return {
+            'port': port_num,
+            'vlan_mode': vlan_mode_override or 'Optional',
+            'vlan_receive': 'Any',
+            'default_vlan_id': port_cfg.get('native_vlan', 1),
+            'force_vlan_id': False
+        }
+
+
+def generate_vlans_table(vlan_membership):
+    """Generate vlans section from port membership tracking."""
+    return [
+        {'vlan_id': vid, 'member_ports': sorted(ports)}
+        for vid, ports in sorted(vlan_membership.items())
+    ]
+
+
+def merge_vlans_tables(existing, generated):
+    """Merge existing vlans (with extra settings like igmp_snooping) with generated."""
+    existing_dict = {v['vlan_id']: v for v in existing}
+    generated_dict = {v['vlan_id']: v for v in generated}
+
+    merged = []
+    for vid in sorted(set(existing_dict.keys()) | set(generated_dict.keys())):
+        if vid in existing_dict and vid in generated_dict:
+            # Merge: use existing as base, update member_ports
+            entry = dict(existing_dict[vid])
+            existing_ports = set(entry.get('member_ports', []))
+            generated_ports = set(generated_dict[vid]['member_ports'])
+            entry['member_ports'] = sorted(existing_ports | generated_ports)
+            merged.append(entry)
+        elif vid in existing_dict:
+            merged.append(existing_dict[vid])
+        else:
+            merged.append(generated_dict[vid])
+
+    return merged
+
+
+def preprocess_port_config(config):
+    """
+    Transform simplified port_config format to detailed port_vlans/vlans format.
+
+    If the config already uses the detailed format (no port_config key),
+    returns the config unchanged along with an empty warnings list.
+
+    Simplified format example:
+        vlan_groups:
+          all_vlans: [1, 64, 539]
+        port_config:
+          1:
+            mode: trunk
+            native_vlan: 1
+            vlan_group: all_vlans
+          3:
+            mode: access
+            vlan: 64
+
+    Transforms to:
+        port_vlans:
+          - port: 1
+            vlan_mode: Optional
+            vlan_receive: Any
+            default_vlan_id: 1
+            force_vlan_id: false
+          - port: 3
+            vlan_mode: Strict
+            vlan_receive: Only Untagged
+            default_vlan_id: 64
+            force_vlan_id: true
+        vlans:
+          - vlan_id: 1
+            member_ports: [1]
+          - vlan_id: 64
+            member_ports: [1, 3]
+          - vlan_id: 539
+            member_ports: [1]
+
+    Returns:
+        Tuple of (config, warnings) where warnings is a list of warning messages
+    """
+    if not uses_simplified_format(config):
+        return config, []
+
+    # Make a copy to avoid modifying the original
+    config = dict(config)
+    warnings = []
+
+    # Extract simplified format sections
+    vlan_groups = config.pop('vlan_groups', {})
+    port_config = config.pop('port_config', {})
+    existing_vlans = config.get('vlans', [])
+
+    # Collect all VLANs referenced anywhere
+    all_vlans = collect_all_vlans(port_config, vlan_groups, existing_vlans)
+
+    # Transform each port and track VLAN membership
+    port_vlans_list = []
+    vlan_membership = {}  # {vlan_id: set(port_numbers)}
+
+    for port_key, port_cfg in port_config.items():
+        port_num = int(port_key)
+
+        # Validate the port configuration
+        validate_port_config_entry(port_cfg, port_num)
+
+        # Get allowed VLANs for this port
+        allowed = get_allowed_vlans_for_port(port_cfg, port_num, vlan_groups, all_vlans, warnings)
+
+        # Transform to detailed format
+        detailed = transform_port_to_detailed(port_num, port_cfg)
+        port_vlans_list.append(detailed)
+
+        # Track VLAN membership for vlans table generation
+        for vlan_id in allowed:
+            vlan_membership.setdefault(vlan_id, set()).add(port_num)
+
+    # Generate vlans table from port memberships and merge with existing
+    generated_vlans = generate_vlans_table(vlan_membership)
+    config['vlans'] = merge_vlans_tables(existing_vlans, generated_vlans)
+    config['port_vlans'] = port_vlans_list
+
+    return config, warnings
+
+
 def run_module():
     module_args = dict(
         host=dict(type='str', required=True),
@@ -660,6 +979,15 @@ def run_module():
     port_vlans = module.params['port_vlans']
     backup = module.params['backup']
     backup_options = module.params['backup_options'] or {}
+
+    # Preprocess simplified port_config format to detailed format
+    if config:
+        try:
+            config, preprocess_warnings = preprocess_port_config(config)
+            for warning in preprocess_warnings:
+                module.warn(warning)
+        except ValueError as e:
+            module.fail_json(msg=str(e))
 
     # Support both new config format and old port_vlans parameter
     if config and 'port_vlans' in config:

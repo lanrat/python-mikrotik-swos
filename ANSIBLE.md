@@ -69,6 +69,242 @@ vlans:
 
 **Note:** The `name`, `isolation`, `learning`, and `mirror` fields are only supported on SwOS (CRS series). They are ignored on SwOS Lite (CSS series).
 
+## Simplified Port Configuration (Access/Trunk Model)
+
+As an alternative to the detailed `port_vlans` and `vlans` sections, you can use the simplified `port_config` format with familiar access/trunk port terminology. The module automatically transforms this to the detailed format.
+
+### Basic Example
+
+```yaml
+port_config:
+  1:
+    mode: trunk
+    native_vlan: 1
+    allowed_vlans: [1, 64, 539]
+  2:
+    mode: trunk
+    native_vlan: 1
+    allowed_vlans: [1, 64]
+  3:
+    mode: access
+    vlan: 64
+```
+
+This automatically generates:
+- **port_vlans**: Per-port VLAN settings (vlan_mode, vlan_receive, default_vlan_id, force_vlan_id)
+- **vlans**: VLAN table with member_ports derived from port assignments
+
+### Port Modes
+
+| Mode | Description | Default vlan_mode |
+|------|-------------|-------------------|
+| `access` | Single untagged VLAN | Strict |
+| `trunk` | Tagged VLANs with native VLAN | Optional |
+
+### Overriding vlan_mode
+
+By default, trunk ports use `Optional` (works on both SwOS and SwOS Lite) and access ports use `Strict`. You can override this per-port using the `vlan_mode` field:
+
+```yaml
+port_config:
+  1:
+    mode: trunk
+    native_vlan: 1
+    vlan_mode: Enabled  # Use 802.1Q Enabled mode (SwOS only)
+    allowed_vlans: [1, 64, 539]
+  3:
+    mode: access
+    vlan: 64
+    # vlan_mode defaults to Strict (no override needed)
+```
+
+**Note:** `Enabled` mode is only supported on SwOS (CRS series). Using it on SwOS Lite (CSS series) will fail. Use `Optional` for mixed-platform environments.
+
+### VLAN Groups
+
+Reduce redundancy by defining named VLAN groups:
+
+```yaml
+vlan_groups:
+  all_vlans: [1, 64, 539]
+  servers: [1, 64]
+  iot: [539]
+
+port_config:
+  1:
+    mode: trunk
+    native_vlan: 1
+    vlan_group: all_vlans      # Reference a group
+  2:
+    mode: trunk
+    native_vlan: 1
+    vlan_group: servers
+  3:
+    mode: access
+    vlan: 64
+```
+
+### Trunk Port Defaults
+
+For trunk ports:
+- **native_vlan**: Defaults to 1 if not specified
+- **allowed_vlans/vlan_group**: If neither is specified, defaults to ALL VLANs referenced anywhere in the configuration
+
+```yaml
+port_config:
+  1:
+    mode: trunk    # native_vlan=1, allowed_vlans=all VLANs in config
+```
+
+### Native VLAN Behavior
+
+**Important:** The native VLAN is always automatically included in the allowed VLANs for trunk ports, even if not explicitly listed in `allowed_vlans` or `vlan_group`. This is required for proper 802.1Q operation.
+
+If the native VLAN is not in your explicit allowed list, a warning will be displayed:
+
+```text
+[WARNING]: Port 6: native_vlan 1 not in allowed VLANs, automatically added
+(native VLAN is always allowed on trunk ports)
+```
+
+To remove a port from a VLAN entirely, you must also change the `native_vlan` to a different VLAN:
+
+```yaml
+port_config:
+  6:
+    mode: trunk
+    native_vlan: 539       # Changed from 1
+    vlan_group: iot_only   # Group that doesn't include VLAN 1
+```
+
+### Combining with Additional VLAN Settings
+
+You can use `port_config` alongside a `vlans` section to add extra settings like IGMP snooping. The module merges them:
+
+```yaml
+port_config:
+  1:
+    mode: trunk
+    native_vlan: 1
+    allowed_vlans: [1, 64]
+  3:
+    mode: access
+    vlan: 64
+
+vlans:
+  # These settings are merged with auto-generated VLAN entries
+  - vlan_id: 64
+    igmp_snooping: true
+  - vlan_id: 100
+    member_ports: [9, 10]    # Additional VLAN not in port_config
+```
+
+### Shared VLANs Across Switches
+
+Use Ansible `group_vars` to share VLAN definitions across multiple switches. The shared variables are merged into the config at playbook execution time using the `combine()` filter.
+
+**Directory structure:**
+
+```text
+ansible/
+├── ansible.cfg
+├── inventory.yml
+├── group_vars/
+│   └── switches.yml      # Shared VLAN definitions
+├── switches/
+│   ├── apply_all_configs.yml
+│   └── switch_config.yml # Per-switch port assignments
+```
+
+**group_vars/switches.yml:**
+
+```yaml
+# Shared VLAN groups for all switches
+shared_vlan_groups:
+  all_vlans: [1, 64, 539]
+  servers: [1, 64]
+
+# Shared VLAN table settings
+shared_vlans:
+  - vlan_id: 1
+    igmp_snooping: false
+  - vlan_id: 64
+    igmp_snooping: true
+  - vlan_id: 539
+    igmp_snooping: false
+```
+
+**switches/switch_config.yml** (pure YAML, no Jinja2):
+
+```yaml
+# Per-switch port assignments only
+# vlan_groups and vlans are merged from group_vars in the playbook
+port_config:
+  1:
+    mode: trunk
+    native_vlan: 1
+    vlan_group: all_vlans
+  2:
+    mode: trunk
+    native_vlan: 1
+    vlan_group: servers
+  3:
+    mode: access
+    vlan: 64
+```
+
+**switches/apply_all_configs.yml:**
+
+```yaml
+---
+- name: Apply Per-Switch Configurations
+  hosts: switches
+  gather_facts: no
+  connection: local
+
+  tasks:
+    - name: Load switch-specific configuration
+      set_fact:
+        switch_config: >-
+          {{ lookup('file', playbook_dir + '/' + config_file) | from_yaml |
+             combine({'vlan_groups': shared_vlan_groups, 'vlans': shared_vlans}) }}
+
+    - name: Apply switch configuration
+      swos:
+        host: "{{ ansible_host }}"
+        username: "{{ switch_username | default('admin') }}"
+        password: "{{ switch_password | default('') }}"
+        config: "{{ switch_config }}"
+```
+
+**inventory.yml:**
+
+```yaml
+all:
+  children:
+    switches:
+      hosts:
+        sw1:
+          ansible_host: 192.168.88.7
+          switch_username: admin
+          switch_password: "{{ switch_password }}"
+          config_file: switch_config.yml
+        sw2:
+          ansible_host: 192.168.88.2
+          config_file: sw2_config.yml
+```
+
+**Key points:**
+
+- Switch config files are pure YAML (no Jinja2 expressions)
+- The playbook uses `combine()` to merge shared variables from `group_vars`
+- Each switch can reference a different `config_file` in the inventory
+- Shared `vlan_groups` and `vlans` are available to all switches automatically
+
+### Backward Compatibility
+
+The detailed format (`port_vlans` and `vlans`) continues to work unchanged. You can use either format, but not both `port_config` and `port_vlans` in the same config (use one or the other for port VLAN settings).
+
 ## Installation Methods
 
 ### Method 1: Git Submodule (Recommended for Infrastructure Repos)
@@ -213,6 +449,7 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
 **Read-only:** Link status, speed/duplex, PoE power readings, host table, system info
 
 **Backup Notes:**
+
 - Backups are binary `.swb` files (MikroTik proprietary encrypted format)
 - Backups are created BEFORE applying any configuration changes
 - Backup is skipped in check mode (dry-run)
@@ -220,6 +457,7 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
 - Backup path is returned in `backup_path` result variable
 
 **Backup Filename Behavior:**
+
 - **With custom filename** (`filename: "{{ inventory_hostname }}_config.swb"`):
   - Creates: `sw1_config.swb`, `sw2_config.swb`, etc.
   - Each switch gets a unique file based on inventory hostname

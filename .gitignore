@@ -20,3 +20,5 @@ switch_config.yml
 # Backup/Output Files
 backup_*.txt
 switch_config.txt
+backups/
+*.swb

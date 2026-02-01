@@ -634,6 +634,100 @@ def get_snmp(url: str, username: str, password: str) -> dict:
         return {}
 
 
+def get_backup(url: str, username: str, password: str) -> bytes:
+    """
+    Download binary backup file from switch
+
+    Works for both SwOS and SwOS Lite. The backup file is in proprietary
+    .swb format (encrypted) and cannot be parsed or modified.
+
+    Args:
+        url: Switch URL (e.g., 'http://192.168.88.1')
+        username: Username for authentication
+        password: Password for authentication
+
+    Returns:
+        bytes: Binary backup file content (.swb format)
+
+    Raises:
+        requests.HTTPError: If request fails
+        ValueError: If switch has default configuration (nothing to backup)
+
+    Example:
+        >>> from swos import get_backup
+        >>> backup_data = get_backup('http://192.168.88.1', 'admin', '')
+        >>> with open('switch_backup.swb', 'wb') as f:
+        ...     f.write(backup_data)
+    """
+    auth = HTTPDigestAuth(username, password)
+    url_clean = url.rstrip('/')
+
+    try:
+        response = requests.get(f"{url_clean}/backup.swb", auth=auth, timeout=30, verify=False)
+        response.raise_for_status()
+
+        # Check if we got actual backup data
+        if not response.content or len(response.content) == 0:
+            raise ValueError("Switch returned empty backup (default configuration, nothing to save)")
+
+        return response.content
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise ValueError("Backup endpoint not found (firmware may not support backups)")
+        raise
+
+
+def restore_backup(url: str, username: str, password: str, backup_data: bytes) -> None:
+    """
+    Restore configuration from binary backup file
+
+    IMPORTANT: The switch will automatically reboot after successful restore.
+    You must wait for the switch to come back online before making additional
+    requests.
+
+    Works for both SwOS and SwOS Lite. The backup file must be in .swb format
+    (created by get_backup() or downloaded from switch web UI).
+
+    Args:
+        url: Switch URL (e.g., 'http://192.168.88.1')
+        username: Username for authentication
+        password: Password for authentication
+        backup_data: Binary backup file content (.swb format)
+
+    Raises:
+        requests.HTTPError: If request fails
+        ValueError: If backup_data is empty
+
+    Example:
+        >>> from swos import restore_backup
+        >>> with open('switch_backup.swb', 'rb') as f:
+        ...     backup_data = f.read()
+        >>> restore_backup('http://192.168.88.1', 'admin', '', backup_data)
+        >>> # Switch will reboot automatically
+    """
+    if not backup_data or len(backup_data) == 0:
+        raise ValueError("backup_data cannot be empty")
+
+    auth = HTTPDigestAuth(username, password)
+    url_clean = url.rstrip('/')
+
+    try:
+        # Create multipart form data with the backup file
+        files = {'file': ('backup.swb', backup_data, 'application/octet-stream')}
+
+        response = requests.post(f"{url_clean}/backup.swb", auth=auth, files=files, timeout=30, verify=False)
+        response.raise_for_status()
+
+        # Note: Switch will reboot after successful restore
+        # The response may be empty or contain a success message
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise ValueError("Backup endpoint not found (firmware may not support backup restore)")
+        raise
+
+
 # ============================================================================
 # WRITE OPERATIONS - Configuration Updates
 # ============================================================================

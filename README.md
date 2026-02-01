@@ -21,6 +21,7 @@ Python library and tools for managing MikroTik SwOS (SwitchOS) and SwOS Lite (Sw
 
 **Read:** System info, ports, PoE, LAG/LACP, per-port VLANs, VLAN table, host table, SFP info, SNMP
 **Write:** System settings, port config, PoE settings, LAG/LACP, per-port VLANs, VLAN table, SNMP
+**Backup/Restore:** Download binary backups, restore from backup files
 **SwOS-only:** VLAN names, isolation, learning, mirror settings (not available on SwOS Lite)
 **Note:** All configuration changes are immediately applied and persisted by the switch.
 
@@ -90,13 +91,19 @@ swos-export --host 192.168.1.1 --username admin --password "" -o switch.yml
 ### Python API
 
 ```python
-from swos import get_system_info, set_port_config
+from swos import get_system_info, set_port_config, get_backup
 
 url = "http://192.168.88.1"
 system = get_system_info(url, "admin", "")
-print(f"{system['device_name']} - {system['model']}")
+print(f"{system['identity']} - {system['model']}")
 
+# Configure a port
 set_port_config(url, "admin", "", port_number=1, name="Uplink")
+
+# Create a backup
+backup_data = get_backup(url, "admin", "")
+with open("switch_backup.swb", "wb") as f:
+    f.write(backup_data)
 ```
 
 See module docstrings for complete API documentation.
@@ -157,9 +164,12 @@ cp ansible/swos.py library/
 
 **Write:** `set_system()`, `set_port_config()`, `set_poe_config()`, `set_lag_config()`, `set_port_vlan()`, `set_vlans()`, `set_snmp()`
 
+**Backup/Restore:** `get_backup()`, `restore_backup()`
+
 All functions take `(url, username, password, ...)` parameters.
 Read functions return lists of dictionaries with configuration data.
 Write functions take port_number and optional setting parameters (except `set_system()`, `set_snmp()`, and `set_vlans()` which set global config).
+Backup functions work with binary `.swb` files (encrypted/proprietary MikroTik format).
 
 See docstrings in the swos module for detailed parameters and return values.
 

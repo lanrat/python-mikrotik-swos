@@ -1,0 +1,32 @@
+---
+# Reusable tasks for backing up switch configuration
+# Include with: import_tasks: path/to/modules/swos/ansible/tasks/backup.yml
+#
+# Variables:
+#   backup_dir: Directory to store backups (default: playbook_dir/backups)
+#   backup_filename: Custom filename (default: inventory_hostname_timestamp.swb)
+
+- name: Create backups directory
+  delegate_to: localhost
+  file:
+    path: "{{ backup_dir | default(playbook_dir + '/backups') }}"
+    state: directory
+    mode: '0755'
+  run_once: true
+
+- name: Backup switch configuration
+  swos:
+    host: "{{ ansible_host }}"
+    username: "{{ switch_username | default('admin') }}"
+    password: "{{ switch_password | default('') }}"
+    config: {}  # Empty config means no changes, just backup
+    backup: yes
+    backup_options:
+      filename: "{{ backup_filename | default(inventory_hostname + '_' + ansible_date_time.iso8601_basic_short + '.swb') }}"
+      dir_path: "{{ backup_dir | default(playbook_dir + '/backups') }}"
+  register: backup_result
+
+- name: Display backup location
+  debug:
+    msg: "Backup saved to: {{ backup_result.backup_path }}"
+  when: backup_result.backup_path is defined

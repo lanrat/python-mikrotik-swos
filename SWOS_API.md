@@ -53,6 +53,7 @@ Responses use JavaScript object notation with hex values:
 | `sys.b` | System configuration | Identity, IP settings, management access, IGMP, MDP, RSTP |
 | `rstp.b` | RSTP per-port | RSTP enabled, role, cost |
 | `sfp.b` | SFP module info | Vendor, temperature, voltage (read-only) |
+| `backup.swb` | Backup/Restore | Binary backup file download/upload |
 
 ## Making Requests
 
@@ -353,3 +354,140 @@ This tells you:
 - i03: "Contact Info" string
 - i04: "Location" string
 - All writable (no `g:1` flag)
+
+## Backup and Restore
+
+### backup.swb (Backup/Restore)
+
+The `backup.swb` endpoint provides backup and restore functionality for the complete switch configuration.
+
+**Important Notes:**
+
+- Backup files are binary `.swb` format (MikroTik proprietary encrypted format)
+- Backups cannot be parsed, edited, or generated - they are opaque binary blobs
+- Backups include the complete device configuration (not just API-accessible settings)
+- Works on both SwOS (CRS series) and SwOS Lite (CSS series)
+- Switch will automatically reboot after a successful restore operation
+
+| Method | Description | Response |
+|--------|-------------|----------|
+| GET | Download binary backup file | Binary `.swb` file content |
+| POST | Restore configuration from backup file | Empty response, switch reboots |
+
+### Downloading a Backup (GET)
+
+**Request:**
+
+```bash
+curl --digest -u admin:password "http://192.168.88.1/backup.swb" -o backup.swb
+```
+
+**Response:**
+
+- **Success (200 OK)**: Binary `.swb` file content
+- **No backup available**: May return empty response or error (switch has default config)
+
+**Python Example:**
+
+```python
+import requests
+from requests.auth import HTTPDigestAuth
+
+url = "http://192.168.88.1"
+auth = HTTPDigestAuth("admin", "")
+
+response = requests.get(f"{url}/backup.swb", auth=auth, timeout=30)
+response.raise_for_status()
+
+# Save backup to file
+with open("switch_backup.swb", "wb") as f:
+    f.write(response.content)
+```
+
+### Restoring a Backup (POST)
+
+**CRITICAL: The switch will reboot automatically after a successful restore!**
+
+**Request:**
+
+```bash
+curl --digest -u admin:password \
+  -F "file=@backup.swb" \
+  "http://192.168.88.1/backup.swb"
+```
+
+**POST Format:**
+
+- Content-Type: `multipart/form-data`
+- Field name: `file`
+- File data: Binary `.swb` backup content
+
+**Response:**
+
+- **Success (200 OK)**: Empty response or success message, switch reboots immediately
+- **Failure**: HTTP error code (400, 404, 500, etc.)
+
+**Python Example:**
+
+```python
+import requests
+from requests.auth import HTTPDigestAuth
+
+url = "http://192.168.88.1"
+auth = HTTPDigestAuth("admin", "")
+
+# Load backup file
+with open("switch_backup.swb", "rb") as f:
+    backup_data = f.read()
+
+# Upload backup (switch will reboot after this)
+files = {'file': ('backup.swb', backup_data, 'application/octet-stream')}
+response = requests.post(f"{url}/backup.swb", auth=auth, files=files, timeout=30)
+response.raise_for_status()
+
+# Switch is now rebooting - wait before making additional requests
+print("Backup restored successfully. Switch is rebooting...")
+```
+
+### Backup File Format
+
+- **Extension**: `.swb` (SWitch Backup)
+- **Format**: Proprietary binary format (likely encrypted)
+- **Platform-specific**: Backups are specific to the switch model/firmware version
+- **Cannot be edited**: Binary format is not human-readable or modifiable
+- **Cannot be generated**: Must be created by the switch itself via GET request
+
+### Common Use Cases
+
+**1. Backup before configuration changes:**
+
+```bash
+# Download current config
+curl --digest -u admin:password "http://192.168.88.1/backup.swb" -o backup_before_change.swb
+
+# Make your configuration changes...
+
+# If something goes wrong, restore the backup
+curl --digest -u admin:password -F "file=@backup_before_change.swb" "http://192.168.88.1/backup.swb"
+```
+
+**2. Clone configuration to multiple switches:**
+
+```bash
+# Backup from source switch
+curl --digest -u admin:password "http://192.168.88.1/backup.swb" -o template.swb
+
+# Restore to target switches (may need to adjust IP/identity after restore)
+curl --digest -u admin:password -F "file=@template.swb" "http://192.168.88.2/backup.swb"
+curl --digest -u admin:password -F "file=@template.swb" "http://192.168.88.3/backup.swb"
+```
+
+**3. Scheduled automated backups:**
+
+```bash
+#!/bin/bash
+# Daily backup script
+DATE=$(date +%Y%m%d)
+curl --digest -u admin:password "http://192.168.88.1/backup.swb" \
+  -o "/backups/switch1_${DATE}.swb"
+```

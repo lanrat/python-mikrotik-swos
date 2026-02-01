@@ -411,7 +411,8 @@ try:
         get_poe, set_poe_config,
         get_lag, set_lag_config,
         get_snmp, set_snmp,
-        get_system_info, set_system
+        get_system_info, set_system,
+        get_backup
     )
     HAS_SWOS_API = True
 except ImportError:
@@ -627,6 +628,15 @@ def run_module():
         password=dict(type='str', required=False, default='', no_log=True),
         config=dict(type='dict', required=False, default={}),
         port_vlans=dict(type='list', elements='dict', required=False, default=[]),
+        backup=dict(type='bool', required=False, default=False),
+        backup_options=dict(
+            type='dict',
+            required=False,
+            options=dict(
+                filename=dict(type='str', required=False),
+                dir_path=dict(type='path', required=False, default='./backups')
+            )
+        ),
     )
 
     result = dict(
@@ -648,6 +658,8 @@ def run_module():
     password = module.params['password']
     config = module.params['config']
     port_vlans = module.params['port_vlans']
+    backup = module.params['backup']
+    backup_options = module.params['backup_options'] or {}
 
     # Support both new config format and old port_vlans parameter
     if config and 'port_vlans' in config:
@@ -660,6 +672,48 @@ def run_module():
         url = host
 
     try:
+        # Create backup before making any changes
+        if backup and not module.check_mode:
+            try:
+                # Get backup data from switch
+                backup_data = get_backup(url, username, password)
+
+                # Prepare backup directory and filename
+                backup_dir = backup_options.get('dir_path', './backups')
+
+                # Create backup directory if it doesn't exist
+                if not os.path.exists(backup_dir):
+                    os.makedirs(backup_dir, mode=0o755)
+
+                # Generate filename if not provided
+                if backup_options.get('filename'):
+                    backup_filename = backup_options['filename']
+                else:
+                    # Use host_timestamp.swb format
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    # Extract hostname for filename (remove http:// prefix if present)
+                    hostname = host.replace('http://', '').replace('https://', '').replace(':', '_').replace('/', '_')
+                    backup_filename = f"{hostname}_{timestamp}.swb"
+
+                # Construct full backup path
+                backup_path = os.path.join(backup_dir, backup_filename)
+
+                # Write backup to file
+                with open(backup_path, 'wb') as f:
+                    f.write(backup_data)
+
+                # Add backup path to result
+                result['backup_path'] = backup_path
+
+            except ValueError as e:
+                # Switch may have default config (nothing to backup)
+                # This is not a fatal error, just log it
+                result['backup_warning'] = str(e)
+            except Exception as e:
+                # Backup failed - this is not fatal, but warn the user
+                result['backup_warning'] = f"Backup failed: {str(e)}"
+
         # Track all changes across all sections
         all_changes = []
 

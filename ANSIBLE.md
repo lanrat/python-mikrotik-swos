@@ -206,11 +206,34 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
 | `username` | No | `admin` | Username |
 | `password` | No | `""` | Password |
 | `config` | No | `{}` | Configuration with sections: snmp, ports, poe, lag, port_vlans, vlans |
+| `backup` | No | `false` | Create backup before applying changes |
+| `backup_options` | No | `{}` | Backup options: `filename` (custom name), `dir_path` (default: `./backups`) |
 
-**Supported:** SNMP, port config, PoE, LAG/LACP, per-port VLANs, global VLAN table
+**Supported:** SNMP, port config, PoE, LAG/LACP, per-port VLANs, global VLAN table, backups
 **Read-only:** Link status, speed/duplex, PoE power readings, host table, system info
 
+**Backup Notes:**
+- Backups are binary `.swb` files (MikroTik proprietary encrypted format)
+- Backups are created BEFORE applying any configuration changes
+- Backup is skipped in check mode (dry-run)
+- If switch has default configuration, backup may fail (nothing to save)
+- Backup path is returned in `backup_path` result variable
+
+**Backup Filename Behavior:**
+- **With custom filename** (`filename: "{{ inventory_hostname }}_config.swb"`):
+  - Creates: `sw1_config.swb`, `sw2_config.swb`, etc.
+  - Each switch gets a unique file based on inventory hostname
+  - **Files are overwritten on each playbook run** (only keeps latest backup)
+  - Useful when you only need the most recent backup before changes
+- **Without custom filename** (omit `filename` parameter):
+  - Creates: `192.168.88.1_20260131_143052.swb`, etc.
+  - Each run creates a new timestamped file
+  - **Files are never overwritten** (keeps full backup history)
+  - Useful for maintaining historical backup records
+
 ## Playbook Example
+
+### Basic Configuration
 
 ```yaml
 - name: Configure Switch
@@ -220,6 +243,39 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
       swos:
         host: "192.168.88.1"
         config: "{{ lookup('file', 'switch_config.yml') | from_yaml }}"
+```
+
+### With Automatic Backup
+
+```yaml
+- name: Configure Switch with Backup
+  hosts: switches
+  gather_facts: no
+  tasks:
+    - name: Create backups directory
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/backups"
+        state: directory
+        mode: '0755'
+      run_once: true
+
+    - name: Apply configuration with backup
+      swos:
+        host: "{{ ansible_host }}"
+        username: "{{ switch_username | default('admin') }}"
+        password: "{{ switch_password | default('') }}"
+        config: "{{ lookup('file', 'switch_config.yml') | from_yaml }}"
+        backup: yes
+        backup_options:
+          filename: "{{ inventory_hostname }}_config.swb"
+          dir_path: "{{ playbook_dir }}/backups"
+      register: result
+
+    - name: Display backup location
+      debug:
+        msg: "Backup saved to: {{ result.backup_path }}"
+      when: result.backup_path is defined
 ```
 
 ## Password Security

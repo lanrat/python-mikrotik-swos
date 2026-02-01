@@ -12,13 +12,30 @@
       set_fact:
         switch_config: "{{ lookup('file', config_file | default('switch_config.yml')) | from_yaml }}"
 
-    - name: Apply switch configuration
+    - name: Create backups directory
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/backups"
+        state: directory
+        mode: '0755'
+      run_once: true
+
+    - name: Apply switch configuration with backup
       swos:
         host: "{{ ansible_host }}"
         username: "{{ switch_username | default('admin') }}"
         password: "{{ switch_password | default('') }}"
         config: "{{ switch_config }}"
+        backup: yes
+        backup_options:
+          filename: "{{ inventory_hostname }}_config.swb"
+          dir_path: "{{ playbook_dir }}/backups"
       register: config_result
+
+    - name: Display backup info
+      debug:
+        msg: "Backup saved to: {{ config_result.backup_path }}"
+      when: config_result.backup_path is defined
 
     - name: Display configuration results
       debug:

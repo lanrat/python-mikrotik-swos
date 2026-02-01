@@ -501,6 +501,7 @@ try:
         get_system_info, set_system,
         get_backup
     )
+    from swos.platform import detect_platform, PlatformType
     HAS_SWOS_API = True
 except ImportError:
     HAS_SWOS_API = False
@@ -652,12 +653,23 @@ def system_config_matches(current, desired):
     return matches
 
 
-def vlans_match(current_vlans, desired_vlans):
+def is_swos_lite(platform_type):
+    """Check if platform is SwOS Lite (CSS series)."""
+    return platform_type == PlatformType.SWOS_LITE
+
+
+def vlans_match(current_vlans, desired_vlans, platform_type=None):
     """Check if current VLAN table matches desired VLAN table
 
     Compares two lists of VLANs by vlan_id, member_ports, igmp_snooping,
     and SwOS-only fields (name, isolation, learning, mirror).
     Returns True if they match exactly (same VLANs with same settings).
+
+    Args:
+        current_vlans: List of VLAN dicts from the switch
+        desired_vlans: List of desired VLAN dicts from config
+        platform_type: Platform type (PlatformType.SWOS or PlatformType.SWOS_LITE)
+                      If None, SwOS-only fields are always compared.
     """
     # Create dictionaries keyed by vlan_id for easier comparison
     current_dict = {v['vlan_id']: v for v in current_vlans}
@@ -682,28 +694,29 @@ def vlans_match(current_vlans, desired_vlans):
         if current_igmp != desired_igmp:
             return False
 
-        # Compare SwOS-only fields (only if specified in desired config)
-        # These are None on SwOS Lite, so we only compare if the desired config has them
-        if 'name' in desired:
-            current_name = current.get('name') or ''
-            desired_name = desired.get('name') or ''
-            if current_name != desired_name:
-                return False
+        # Compare SwOS-only fields (only if specified in desired config AND platform supports them)
+        # Skip these comparisons on SwOS Lite since it doesn't support these fields
+        if platform_type is None or not is_swos_lite(platform_type):
+            if 'name' in desired:
+                current_name = current.get('name') or ''
+                desired_name = desired.get('name') or ''
+                if current_name != desired_name:
+                    return False
 
-        if 'isolation' in desired:
-            current_isolation = current.get('isolation') if current.get('isolation') is not None else False
-            if current_isolation != desired['isolation']:
-                return False
+            if 'isolation' in desired:
+                current_isolation = current.get('isolation') if current.get('isolation') is not None else False
+                if current_isolation != desired['isolation']:
+                    return False
 
-        if 'learning' in desired:
-            current_learning = current.get('learning') if current.get('learning') is not None else True
-            if current_learning != desired['learning']:
-                return False
+            if 'learning' in desired:
+                current_learning = current.get('learning') if current.get('learning') is not None else True
+                if current_learning != desired['learning']:
+                    return False
 
-        if 'mirror' in desired:
-            current_mirror = current.get('mirror') if current.get('mirror') is not None else False
-            if current_mirror != desired['mirror']:
-                return False
+            if 'mirror' in desired:
+                current_mirror = current.get('mirror') if current.get('mirror') is not None else False
+                if current_mirror != desired['mirror']:
+                    return False
 
     return True
 
@@ -847,7 +860,11 @@ def merge_vlans_tables(existing, generated):
             entry['member_ports'] = sorted(existing_ports | generated_ports)
             merged.append(entry)
         elif vid in existing_dict:
-            merged.append(existing_dict[vid])
+            # VLAN only in existing config - ensure member_ports exists
+            entry = dict(existing_dict[vid])
+            if 'member_ports' not in entry:
+                entry['member_ports'] = []
+            merged.append(entry)
         else:
             merged.append(generated_dict[vid])
 
@@ -998,6 +1015,12 @@ def run_module():
         url = f"http://{host}"
     else:
         url = host
+
+    # Detect platform type (SwOS vs SwOS Lite)
+    try:
+        platform_type = detect_platform(url, username, password)
+    except Exception as e:
+        module.fail_json(msg=f"Failed to detect switch platform: {e}")
 
     try:
         # Create backup before making any changes
@@ -1213,7 +1236,7 @@ def run_module():
             current_vlans = get_vlans(url, username, password)
             desired_vlans = config['vlans']
 
-            if not vlans_match(current_vlans, desired_vlans):
+            if not vlans_match(current_vlans, desired_vlans, platform_type):
                 # Build detailed change description
                 current_vlan_ids = set(v['vlan_id'] for v in current_vlans)
                 desired_vlan_ids = set(v['vlan_id'] for v in desired_vlans)
@@ -1241,15 +1264,16 @@ def run_module():
                         is_modified = True
                     elif curr.get('igmp_snooping', False) != des.get('igmp_snooping', False):
                         is_modified = True
-                    # SwOS-only fields
-                    elif 'name' in des and (curr.get('name') or '') != (des.get('name') or ''):
-                        is_modified = True
-                    elif 'isolation' in des and curr.get('isolation', False) != des['isolation']:
-                        is_modified = True
-                    elif 'learning' in des and curr.get('learning', True) != des['learning']:
-                        is_modified = True
-                    elif 'mirror' in des and curr.get('mirror', False) != des['mirror']:
-                        is_modified = True
+                    # SwOS-only fields (skip on SwOS Lite)
+                    elif not is_swos_lite(platform_type):
+                        if 'name' in des and (curr.get('name') or '') != (des.get('name') or ''):
+                            is_modified = True
+                        elif 'isolation' in des and curr.get('isolation', False) != des['isolation']:
+                            is_modified = True
+                        elif 'learning' in des and curr.get('learning', True) != des['learning']:
+                            is_modified = True
+                        elif 'mirror' in des and curr.get('mirror', False) != des['mirror']:
+                            is_modified = True
 
                     if is_modified:
                         modified_vlans.append(vlan_id)

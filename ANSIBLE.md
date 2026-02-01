@@ -91,15 +91,16 @@ port_config:
 ```
 
 This automatically generates:
+
 - **port_vlans**: Per-port VLAN settings (vlan_mode, vlan_receive, default_vlan_id, force_vlan_id)
 - **vlans**: VLAN table with member_ports derived from port assignments
 
 ### Port Modes
 
-| Mode | Description | Default vlan_mode |
-|------|-------------|-------------------|
-| `access` | Single untagged VLAN | Strict |
-| `trunk` | Tagged VLANs with native VLAN | Optional |
+| Mode     | Description                   | Default vlan_mode |
+|----------|-------------------------------|-------------------|
+| `access` | Single untagged VLAN          | Strict            |
+| `trunk`  | Tagged VLANs with native VLAN | Optional          |
 
 ### Overriding vlan_mode
 
@@ -147,6 +148,7 @@ port_config:
 ### Trunk Port Defaults
 
 For trunk ports:
+
 - **native_vlan**: Defaults to 1 if not specified
 - **allowed_vlans/vlan_group**: If neither is specified, defaults to ALL VLANs referenced anywhere in the configuration
 
@@ -436,14 +438,14 @@ ansible-playbook -i inventory.yml apply_config.yml --ask-vault-pass
 
 ## Module Parameters
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `host` | Yes | - | Switch IP/hostname |
-| `username` | No | `admin` | Username |
-| `password` | No | `""` | Password |
-| `config` | No | `{}` | Configuration with sections: snmp, ports, poe, lag, port_vlans, vlans |
-| `backup` | No | `false` | Create backup before applying changes |
-| `backup_options` | No | `{}` | Backup options: `filename` (custom name), `dir_path` (default: `./backups`) |
+| Parameter        | Required | Default | Description                                                                 |
+|------------------|----------|---------|-----------------------------------------------------------------------------|
+| `host`           | Yes      | -       | Switch IP/hostname                                                          |
+| `username`       | No       | `admin` | Username                                                                    |
+| `password`       | No       | `""`    | Password                                                                    |
+| `config`         | No       | `{}`    | Configuration with sections: snmp, ports, poe, lag, port_vlans, vlans       |
+| `backup`         | No       | `false` | Create backup before applying changes                                       |
+| `backup_options` | No       | `{}`    | Backup options: `filename` (custom name), `dir_path` (default: `./backups`) |
 
 **Supported:** SNMP, port config, PoE, LAG/LACP, per-port VLANs, global VLAN table, backups
 **Read-only:** Link status, speed/duplex, PoE power readings, host table, system info

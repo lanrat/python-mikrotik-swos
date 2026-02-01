@@ -42,18 +42,18 @@ Responses use JavaScript object notation with hex values:
 
 ## API Endpoints
 
-| Endpoint | Purpose | Fields |
-|----------|---------|--------|
-| `link.b` | Port configuration | Names, enabled, auto-negotiation, speed, duplex, flow control |
-| `poe.b` | PoE configuration | Mode, priority, voltage, LLDP (ports 1-8 only) |
-| `lacp.b` | LAG/LACP configuration | Mode, group |
-| `fwd.b` | Forwarding/VLAN configuration | VLAN mode, VLAN receive, default VLAN ID, port mirroring, rate limiting |
-| `snmp.b` | SNMP configuration | Enabled, community, contact, location |
-| `vlan.b` | VLAN table | VLAN IDs, members, IGMP snooping |
-| `sys.b` | System configuration | Identity, IP settings, management access, IGMP, MDP, RSTP |
-| `rstp.b` | RSTP per-port | RSTP enabled, role, cost |
-| `sfp.b` | SFP module info | Vendor, temperature, voltage (read-only) |
-| `backup.swb` | Backup/Restore | Binary backup file download/upload |
+| Endpoint     | Purpose                       | Fields                                                                  |
+|--------------|-------------------------------|-------------------------------------------------------------------------|
+| `link.b`     | Port configuration            | Names, enabled, auto-negotiation, speed, duplex, flow control           |
+| `poe.b`      | PoE configuration             | Mode, priority, voltage, LLDP (ports 1-8 only)                          |
+| `lacp.b`     | LAG/LACP configuration        | Mode, group                                                             |
+| `fwd.b`      | Forwarding/VLAN configuration | VLAN mode, VLAN receive, default VLAN ID, port mirroring, rate limiting |
+| `snmp.b`     | SNMP configuration            | Enabled, community, contact, location                                   |
+| `vlan.b`     | VLAN table                    | VLAN IDs, members, IGMP snooping                                        |
+| `sys.b`      | System configuration          | Identity, IP settings, management access, IGMP, MDP, RSTP               |
+| `rstp.b`     | RSTP per-port                 | RSTP enabled, role, cost                                                |
+| `sfp.b`      | SFP module info               | Vendor, temperature, voltage (read-only)                                |
+| `backup.swb` | Backup/Restore                | Binary backup file download/upload                                      |
 
 ## Making Requests
 
@@ -143,27 +143,27 @@ curl --digest -u admin:password \
 
 ### link.b (Port Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i01` | Bitmask | Port enabled | bit 0=port1, bit 1=port2, etc. |
-| `i0a` | Array | Port names | Hex-encoded strings |
+| Field | Type    | Description      | Values                         |
+|-------|---------|------------------|--------------------------------|
+| `i01` | Bitmask | Port enabled     | bit 0=port1, bit 1=port2, etc. |
+| `i0a` | Array   | Port names       | Hex-encoded strings            |
 | `i02` | Bitmask | Auto-negotiation | bit 0=port1, bit 1=port2, etc. |
-| `i03` | Bitmask | Full duplex | bit 0=port1, bit 1=port2, etc. |
-| `i05` | Array | Speed | 0x00=auto, varies by model |
-| `i16` | Bitmask | Flow control TX | bit 0=port1, bit 1=port2, etc. |
-| `i12` | Bitmask | Flow control RX | bit 0=port1, bit 1=port2, etc. |
+| `i03` | Bitmask | Full duplex      | bit 0=port1, bit 1=port2, etc. |
+| `i05` | Array   | Speed            | 0x00=auto, varies by model     |
+| `i16` | Bitmask | Flow control TX  | bit 0=port1, bit 1=port2, etc. |
+| `i12` | Bitmask | Flow control RX  | bit 0=port1, bit 1=port2, etc. |
 
 **Writable fields:** i01, i0a, i02, i05, i03, i16, i12
 **Read-only fields:** i06, i07, i08, i13, i14, i15 (link status, actual speed, etc.)
 
 ### poe.b (PoE Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i01` | Array | PoE mode | 0x00=off, 0x01=on, 0x02=auto |
-| `i02` | Array | PoE priority | 0x00-0x07 (priority 1-8) |
-| `i03` | Array | Voltage level | 0x00=auto, 0x01=low, 0x02=high |
-| `i0a` | Bitmask | LLDP enabled | bit 0=port1, bit 1=port2, etc. (8 bits) |
+| Field | Type    | Description   | Values                                  |
+|-------|---------|---------------|-----------------------------------------|
+| `i01` | Array   | PoE mode      | 0x00=off, 0x01=on, 0x02=auto            |
+| `i02` | Array   | PoE priority  | 0x00-0x07 (priority 1-8)                |
+| `i03` | Array   | Voltage level | 0x00=auto, 0x01=low, 0x02=high          |
+| `i0a` | Bitmask | LLDP enabled  | bit 0=port1, bit 1=port2, etc. (8 bits) |
 
 **Important:** PoE arrays should only contain 8 elements (for PoE-capable ports), even if the switch has 10 ports.
 
@@ -172,22 +172,22 @@ curl --digest -u admin:password \
 
 ### lacp.b (LAG/LACP Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i01` | Array | LACP mode | 0x00=passive, 0x01=active, 0x02=static |
-| `i03` | Array | LAG group | 0x00-0x0f (group 0-15) |
+| Field | Type  | Description | Values                                 |
+|-------|-------|-------------|----------------------------------------|
+| `i01` | Array | LACP mode   | 0x00=passive, 0x01=active, 0x02=static |
+| `i03` | Array | LAG group   | 0x00-0x0f (group 0-15)                 |
 
 **Writable fields:** i01, i03
 **Read-only fields:** i02 (trunk ID), i04 (partner MAC)
 
 ### fwd.b (VLAN/Forwarding Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i15` | Array | VLAN mode | 0x00=disabled, 0x01=optional, 0x02=strict |
-| `i17` | Array | VLAN receive | 0x00=any, 0x01=only tagged, 0x02=only untagged |
-| `i18` | Array | Default VLAN ID | 0x0001-0x0fff (1-4095) |
-| `i19` | Bitmask | Force VLAN ID | bit 0=port1, bit 1=port2, etc. |
+| Field | Type    | Description     | Values                                         |
+|-------|---------|-----------------|------------------------------------------------|
+| `i15` | Array   | VLAN mode       | 0x00=disabled, 0x01=optional, 0x02=strict      |
+| `i17` | Array   | VLAN receive    | 0x00=any, 0x01=only tagged, 0x02=only untagged |
+| `i18` | Array   | Default VLAN ID | 0x0001-0x0fff (1-4095)                         |
+| `i19` | Bitmask | Force VLAN ID   | bit 0=port1, bit 1=port2, etc.                 |
 
 **Writable fields (VLAN):** i15, i17, i18, i19
 **Other writable fields:** i10-i14 (port lock, mirroring), i1a-i1e (rate limiting)
@@ -195,26 +195,26 @@ curl --digest -u admin:password \
 
 ### snmp.b (SNMP Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i01` | Scalar | SNMP enabled | 0x00=disabled, 0x01=enabled |
+| Field | Type   | Description      | Values                            |
+|-------|--------|------------------|-----------------------------------|
+| `i01` | Scalar | SNMP enabled     | 0x00=disabled, 0x01=enabled       |
 | `i02` | String | Community string | Hex-encoded string (max 63 chars) |
-| `i03` | String | Contact info | Hex-encoded string (max 63 chars) |
-| `i04` | String | Location | Hex-encoded string (max 63 chars) |
+| `i03` | String | Contact info     | Hex-encoded string (max 63 chars) |
+| `i04` | String | Location         | Hex-encoded string (max 63 chars) |
 
 **Writable fields:** i01, i02, i03, i04 (all fields)
 
 ### sys.b (System Configuration)
 
-| Field | Type | Description | Values |
-|-------|------|-------------|--------|
-| `i05` | String | Identity/device name | Hex-encoded string (max 63 chars) |
-| `i0a` | Scalar | Address acquisition mode | 0x00=DHCP with fallback, 0x01=static, 0x02=DHCP only |
-| `i09` | IP | Static/fallback IP address | Little-endian encoded IP (see note below) |
-| `i19` | IP | Allow From IP | Little-endian encoded IP (0x00000000 = no restriction) |
-| `i1a` | Scalar | Allow From CIDR bits | 0x00-0x20 (0-32, use with i19) |
-| `i12` | Bitmask | Allow From Ports | bit 0=port1, bit 1=port2, etc. (10 bits) |
-| `i1b` | Scalar | Allow From VLAN | 0x0001-0x0fff (1-4095) |
+| Field | Type    | Description                | Values                                                 |
+|-------|---------|----------------------------|--------------------------------------------------------|
+| `i05` | String  | Identity/device name       | Hex-encoded string (max 63 chars)                      |
+| `i0a` | Scalar  | Address acquisition mode   | 0x00=DHCP with fallback, 0x01=static, 0x02=DHCP only   |
+| `i09` | IP      | Static/fallback IP address | Little-endian encoded IP (see note below)              |
+| `i19` | IP      | Allow From IP              | Little-endian encoded IP (0x00000000 = no restriction) |
+| `i1a` | Scalar  | Allow From CIDR bits       | 0x00-0x20 (0-32, use with i19)                         |
+| `i12` | Bitmask | Allow From Ports           | bit 0=port1, bit 1=port2, etc. (10 bits)               |
+| `i1b` | Scalar  | Allow From VLAN            | 0x0001-0x0fff (1-4095)                                 |
 
 **Important IP Encoding Note:**
 
@@ -369,10 +369,10 @@ The `backup.swb` endpoint provides backup and restore functionality for the comp
 - Works on both SwOS (CRS series) and SwOS Lite (CSS series)
 - Switch will automatically reboot after a successful restore operation
 
-| Method | Description | Response |
-|--------|-------------|----------|
-| GET | Download binary backup file | Binary `.swb` file content |
-| POST | Restore configuration from backup file | Empty response, switch reboots |
+| Method | Description                            | Response                       |
+|--------|----------------------------------------|--------------------------------|
+| GET    | Download binary backup file            | Binary `.swb` file content     |
+| POST   | Restore configuration from backup file | Empty response, switch reboots |
 
 ### Downloading a Backup (GET)
 

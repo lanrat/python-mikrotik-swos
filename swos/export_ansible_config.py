@@ -150,13 +150,39 @@ def export_switch_config(host, username, password):
                     'default_vlan_id': port_vlan.get('default_vlan_id'),
                     'force_vlan_id': port_vlan.get('force_vlan_id'),
                 }
-                # Remove None values and only include non-default configs
-                port_vlan_config = {k: v for k, v in port_vlan_config.items() if v is not None}
-                if port_vlan_config.get('vlan_mode') != 'Disabled' or \
-                   port_vlan_config.get('vlan_receive') != 'Any' or \
-                   port_vlan_config.get('default_vlan_id', 1) != 1 or \
-                   port_vlan_config.get('force_vlan_id', False):
+
+                # Remove None values
+                port_vlan_config = {
+                    k: v for k, v in port_vlan_config.items()
+                    if v is not None
+                }
+
+                # Export only meaningful deviations from factory-like baseline.
+                #
+                # Real CSS326 fixtures show baseline as:
+                #   vlan_mode      = Optional
+                #   vlan_receive   = Any
+                #   default_vlan_id= 1
+                #   force_vlan_id  = False
+                #
+                # On some devices/versions "Disabled" may also be treated as
+                # baseline for otherwise-default settings, so keep both values
+                # as non-meaningful defaults here.
+                vlan_mode = port_vlan_config.get('vlan_mode')
+                vlan_receive = port_vlan_config.get('vlan_receive', 'Any')
+                default_vlan_id = port_vlan_config.get('default_vlan_id', 1)
+                force_vlan_id = port_vlan_config.get('force_vlan_id', False)
+
+                is_defaultish_vlan_mode = vlan_mode in ('Disabled', 'Optional')
+
+                if (
+                    not is_defaultish_vlan_mode or
+                    vlan_receive != 'Any' or
+                    default_vlan_id != 1 or
+                    force_vlan_id
+                ):
                     port_vlan_configs.append(port_vlan_config)
+
             if port_vlan_configs:
                 config['port_vlans'] = port_vlan_configs
 

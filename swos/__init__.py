@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SwOS/SwOS Lite API Library
+SwOS/SwOS Lite API Library.
 
 Python library for MikroTik SwOS and SwOS Lite switches.
 
 Supports:
-- SwOS Lite (CSS series): CSS610-8G-2S+, CSS610-8P-2S+, CSS326-24G-2S+, etc.
-- SwOS (CRS/RB series): CRS305-1G-4S+, CRS310-8G+2S+, CRS328-24P-4S+, etc.
+- SwOS Lite devices with hex-style field IDs (for example CSS610-8G-2S+, CSS610-8P-2S+)
+- SwOS devices with descriptive field names (for example CRS305-1G-4S+, CRS310-8G+2S+, CSS326-24G-2S+)
 
 Platform is automatically detected - no configuration required.
 

@@ -5,6 +5,7 @@ Field mappings for MikroTik SwOS (CRS/RB series switches)
 Tested with:
 - CRS305-1G-4S+ (SwOS 2.17)
 - CRS310-8G+2S+ (SwOS 2.17)
+- CSS326-24G-2S+ (SwOS 2.18)
 """
 
 from .field_maps import FieldMap

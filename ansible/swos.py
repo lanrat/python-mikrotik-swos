@@ -13,7 +13,9 @@ version_added: "1.0.0"
 description:
     - Manages configuration of MikroTik switches running SwOS or SwOS Lite
     - Automatically detects platform type (SwOS vs SwOS Lite) and adapts accordingly
-    - Supports SwOS Lite 2.20+ (CSS series) and SwOS 2.14+ (CRS/RB series)
+    - Supports both SwOS Lite and SwOS devices with automatic platform detection
+    - CSS models are not assumed to be SwOS Lite; platform is determined from device responses
+    - Supports SwOS 2.14+ and SwOS Lite 2.20+
     - Supports configuring ports, PoE, LAG/LACP, VLANs, and SNMP
     - Implements idempotent operations (only applies changes when needed)
     - Supports check mode for dry-run validation

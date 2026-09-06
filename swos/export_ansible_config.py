@@ -150,9 +150,12 @@ def export_switch_config(host, username, password):
                     'default_vlan_id': port_vlan.get('default_vlan_id'),
                     'force_vlan_id': port_vlan.get('force_vlan_id'),
                 }
-                # Remove None values and only include non-default configs
+                # Remove None values and only include non-default configs.
+                # An untouched port reports vlan_mode 'Optional' on both SwOS
+                # and SwOS Lite, so treat it as baseline alongside 'Disabled' -
+                # otherwise every port lands in the export as noise.
                 port_vlan_config = {k: v for k, v in port_vlan_config.items() if v is not None}
-                if port_vlan_config.get('vlan_mode') != 'Disabled' or \
+                if port_vlan_config.get('vlan_mode') not in ('Disabled', 'Optional') or \
                    port_vlan_config.get('vlan_receive') != 'Any' or \
                    port_vlan_config.get('default_vlan_id', 1) != 1 or \
                    port_vlan_config.get('force_vlan_id', False):

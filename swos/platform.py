@@ -8,10 +8,10 @@ interacting with both SwOS and SwOS Lite devices.
 
 import requests
 from requests.auth import HTTPDigestAuth
-from typing import Tuple, Optional
+from typing import Optional
 
 from .core import parse_js_object, decode_hex_string
-from .field_maps import FieldMap, get_field
+from .field_maps import FieldMap
 from .swos_lite_map import SWOS_LITE_FIELD_MAP
 from .swos_map import SWOS_FIELD_MAP
 
@@ -28,6 +28,10 @@ def detect_platform_from_data(data: dict) -> str:
     """
     Detect platform type from parsed sys.b data
 
+    The model prefix is NOT a reliable signal: CSS326-24G-2S+ runs full SwOS
+    and exposes descriptive fields, so 'CSS' cannot be taken to mean SwOS Lite.
+    Field naming is authoritative; version and model are fallbacks only.
+
     Args:
         data: Parsed sys.b response
 
@@ -37,7 +41,10 @@ def detect_platform_from_data(data: dict) -> str:
     # Method 1: Check field name format
     # SwOS Lite uses hex IDs (i01, i05, i06, etc.)
     # SwOS uses descriptive names (id, ver, brd, etc.)
-    has_hex_fields = any(k.startswith('i') and len(k) == 3 for k in data.keys())
+    # Match i + digits exactly: SwOS sys.b contains 'ivl', which would
+    # otherwise be mistaken for a SwOS Lite field ID.
+    has_hex_fields = any(len(k) == 3 and k[0] == 'i' and k[1:].isdigit()
+                         for k in data.keys())
     has_descriptive_fields = 'id' in data or 'ver' in data or 'brd' in data
 
     if has_hex_fields and not has_descriptive_fields:
@@ -45,22 +52,25 @@ def detect_platform_from_data(data: dict) -> str:
     elif has_descriptive_fields and not has_hex_fields:
         return PlatformType.SWOS
 
-    # Method 2: Check model string as fallback
-    # Try SwOS Lite model field first
-    model_hex = data.get('i07') or data.get('brd', '')
-    if model_hex:
-        model = decode_hex_string(model_hex)
-        if model.startswith('CSS'):
-            return PlatformType.SWOS_LITE
-        elif model.startswith('CRS') or model.startswith('RB'):
-            return PlatformType.SWOS
-
-    # Method 3: Check version string
+    # Method 2: Check version string
     ver_hex = data.get('i06') or data.get('ver', '')
     if ver_hex:
         version = decode_hex_string(ver_hex)
         if 'lite' in version.lower():
             return PlatformType.SWOS_LITE
+
+    # Method 3: Check model string as a last resort. Only CRS/RB are
+    # conclusive; a CSS model is resolved by which field style it uses.
+    model_hex = data.get('i07') or data.get('brd', '')
+    if model_hex:
+        model = decode_hex_string(model_hex)
+        if model.startswith('CRS') or model.startswith('RB'):
+            return PlatformType.SWOS
+        elif model.startswith('CSS'):
+            if has_descriptive_fields:
+                return PlatformType.SWOS
+            elif has_hex_fields:
+                return PlatformType.SWOS_LITE
 
     return PlatformType.UNKNOWN
 
@@ -90,7 +100,7 @@ def is_routeros(url: str, username: str, password: str) -> bool:
         if response.status_code == 200 and 'graph' in response.text.lower():
             return True
         return False
-    except:
+    except Exception:
         return False
 
 
@@ -124,7 +134,7 @@ def detect_platform(url: str, username: str, password: str) -> str:
         try:
             data = parse_js_object(response.text)
             return detect_platform_from_data(data)
-        except:
+        except Exception:
             return PlatformType.UNKNOWN
 
     except Exception as e:
@@ -259,7 +269,7 @@ class PlatformAdapter:
                 response.raise_for_status()
                 data = parse_js_object(response.text)
                 self._port_count = get_port_count_from_link_data(data, self.platform_type)
-            except:
+            except Exception:
                 # Default fallback
                 self._port_count = 10
         return self._port_count
@@ -284,7 +294,7 @@ class PlatformAdapter:
                 data = parse_js_object(response.text)
                 return bool(data)  # Has content = supported
             return False
-        except:
+        except Exception:
             return False
 
     def has_poe(self) -> bool:

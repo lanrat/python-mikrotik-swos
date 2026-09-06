@@ -47,12 +47,16 @@ from .core import (
     encode_port_mask,
     build_post_data,
     build_post_array,
+    encode_swos_password,
 )
 from .platform import PlatformAdapter, PlatformType, detect_platform
 from .field_maps import get_field
 
 # Module-level adapter cache to avoid re-detecting platform on every call
 _adapter_cache: Dict[tuple, PlatformAdapter] = {}
+
+# Maximum password length accepted by the SwOS web UI
+MAX_PASSWORD_LENGTH = 15
 
 
 def _get_adapter(url: str, username: str, password: str) -> PlatformAdapter:
@@ -1240,34 +1244,39 @@ def set_password(url: str, username: str, current_password: str, new_password: s
         new_password: New password to set
 
     Returns:
-        Response text from the switch
+        Response text from the switch (empty string on success)
 
     Raises:
-        requests.HTTPError: If password change fails
+        ValueError: If a password is too long or contains non-ASCII characters
+        requests.HTTPError: If password change fails (405 = incorrect current password)
 
     Example:
         >>> set_password('http://192.168.88.1', 'admin', 'oldpass', 'newpass')
-        'OK'
+        ''
     """
-    from .core import encode_swos_password
+    # The web UI enforces these limits. Exceeding them silently truncates the
+    # password at the 32-byte buffer boundary, setting one you cannot type back.
+    if len(new_password) > MAX_PASSWORD_LENGTH:
+        raise ValueError(f"New password is too long (max {MAX_PASSWORD_LENGTH} characters)")
+    if len(current_password) > MAX_PASSWORD_LENGTH:
+        raise ValueError(f"Current password is too long (max {MAX_PASSWORD_LENGTH} characters)")
+    if not all(ord(c) < 128 for c in new_password):
+        raise ValueError("New password must contain only ASCII characters")
+    if not all(ord(c) < 128 for c in current_password):
+        raise ValueError("Current password must contain only ASCII characters")
 
-    auth = HTTPDigestAuth(username, current_password)
+    adapter = _get_adapter(url, username, current_password)
+    fm = adapter.field_map
 
-    # Encode the password using SwOS algorithm
+    # The encoding is identical on both platforms, but the POST field name is not:
+    # SwOS uses 'pwd', SwOS Lite uses 'i01'.
     pwd_encoded = encode_swos_password(current_password, new_password)
+    post_data = build_post_data({fm.password_field: pwd_encoded})
 
-    # Build POST data in SwOS format
-    post_data = "{pwd:'" + pwd_encoded + "'}"
+    result = adapter.post('password', post_data)
 
-    # POST to password endpoint
-    url_base = url.rstrip('/')
-    response = requests.post(
-        f"{url_base}/!pwd.b",
-        data=post_data,
-        auth=auth,
-        timeout=10,
-        verify=False
-    )
-    response.raise_for_status()
+    # The cached adapter still holds the old credentials, so drop it to avoid
+    # authentication failures on subsequent calls in the same process.
+    _adapter_cache.pop((url.rstrip('/'), username, current_password), None)
 
-    return response.text
+    return result

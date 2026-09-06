@@ -24,6 +24,9 @@ SWOS_FIELD_MAP = FieldMap(
     endpoint_snmp="snmp.b",
     endpoint_password="!pwd.b",
 
+    # Password field (!pwd.b)
+    password_field="pwd",
+
     # System fields (sys.b)
     system_uptime="upt",
     system_current_ip="cip",

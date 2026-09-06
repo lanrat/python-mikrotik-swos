@@ -34,6 +34,9 @@ class FieldMap:
     endpoint_snmp: str = "snmp.b"
     endpoint_password: str = "!pwd.b"
 
+    # Password field (!pwd.b) - SwOS uses 'pwd', SwOS Lite uses 'i01'
+    password_field: str = ""
+
     # System fields (sys.b)
     system_uptime: str = ""
     system_current_ip: str = ""

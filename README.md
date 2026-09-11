@@ -67,6 +67,7 @@ pip install -r requirements.txt
 
 Contributor-reported, not verified against hardware here:
 
+- CRS328-24P-4S+ (SwOS, PoE)
 - CSS318-16G-2S+ (SwOS)
 - CSS326-24G-2S+ (SwOS)
 

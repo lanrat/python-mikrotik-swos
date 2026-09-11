@@ -3,7 +3,13 @@
 This folder contains the basic HTML and JS used by the various MikroTik SwitchOS and SwitchOS Lite HTTP interfaces.
 
 - Cloud Router Switch (CRS): Runs the full SwitchOS or RouterOS
-- Cloud Smart Switch (CSS): Runs simpler SwitchOS
+- Cloud Smart Switch (CSS): Runs either the full SwitchOS or SwitchOS Lite,
+  depending on the model
+
+The model prefix does not tell you which platform a switch runs. CSS610 models run
+SwitchOS Lite, while CSS318 and CSS326 run the full SwitchOS. The reliable signal is the
+field naming in `sys.b`: SwitchOS Lite uses hex IDs (`i01`, `i02`), the full SwitchOS uses
+descriptive names (`id`, `ver`, `brd`).
 
 ## Purpose
 

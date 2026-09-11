@@ -439,6 +439,7 @@ def get_poe(url: str, username: str, password: str) -> List[dict]:
         - poe_priority: Priority level (1-based)
         - voltage_level: 'auto', 'low', or 'high'
         - poe_status: Status string
+        - poe_standard: 'af', 'af/at', or 'af/at/bt' (SwOS only, omitted on SwOS Lite)
         - lldp_enabled: LLDP PoE enabled (boolean)
         - poe_current_ma: Current in mA (if active)
         - poe_voltage_v: Voltage in V (if active)
@@ -471,13 +472,28 @@ def get_poe(url: str, username: str, password: str) -> List[dict]:
         0x02: 'high',
     }
 
-    # PoE status mapping
+    # PoE status mapping, indexed exactly as the web UI's status list.
+    # Both SwOS and SwOS Lite ship the same list; see webui_reference/.
+    # Value 0 renders blank in the UI (port has no PoE status to report).
     poe_status_map = {
-        0x00: 'disabled',
+        0x00: '',
+        0x01: 'disabled',
         0x02: 'waiting for load',
         0x03: 'powered on',
+        0x04: 'overload',
         0x05: 'short circuit',
-        0x06: 'overload',
+        0x06: 'voltage too low',
+        0x07: 'current too low',
+        0x08: 'power cycle',
+        0x09: 'voltage too high',
+        0x0a: 'controller error',
+    }
+
+    # PoE standard mapping (SwOS only)
+    poe_standard_map = {
+        0x00: 'af',
+        0x01: 'af/at',
+        0x02: 'af/at/bt',
     }
 
     poe_modes = get_field(data, fm, 'poe_mode') or []
@@ -489,6 +505,7 @@ def get_poe(url: str, username: str, password: str) -> List[dict]:
     poe_power = get_field(data, fm, 'poe_power') or []  # in 0.1W
     lldp_enabled_mask = get_field(data, fm, 'poe_lldp') or 0
     lldp_power = get_field(data, fm, 'poe_lldp_power') or []  # in 0.1W
+    poe_standard = get_field(data, fm, 'poe_standard') or []  # SwOS only
 
     ports = []
     for i in range(len(poe_modes)):
@@ -500,6 +517,11 @@ def get_poe(url: str, username: str, password: str) -> List[dict]:
             'poe_status': poe_status_map.get(poe_status[i], f'Unknown(0x{poe_status[i]:02x})'),
             'lldp_enabled': bool(lldp_enabled_mask & (1 << i)),
         }
+
+        # Add PoE standard if the platform reports it (SwOS only)
+        if i < len(poe_standard):
+            port_info['poe_standard'] = poe_standard_map.get(
+                poe_standard[i], f'Unknown(0x{poe_standard[i]:02x})')
 
         # Add current/voltage/power if PoE is active
         if i < len(poe_current) and poe_current[i] > 0:

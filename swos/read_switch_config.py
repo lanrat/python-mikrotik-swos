@@ -96,7 +96,7 @@ def format_poe_info(ports):
         mode = port.get('poe_mode', 'N/A')
         priority = port.get('poe_priority', 'N/A')
         voltage_level = port.get('voltage_level', 'N/A')
-        status = port.get('poe_status', 'N/A')
+        status = port.get('poe_status') or 'N/A'  # blank means nothing to report
 
         current = f"{port.get('poe_current_ma', 0)}mA" if 'poe_current_ma' in port else '-'
         voltage = f"{port.get('poe_voltage_v', 0):.1f}V" if 'poe_voltage_v' in port else '-'

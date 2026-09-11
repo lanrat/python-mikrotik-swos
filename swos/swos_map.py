@@ -68,7 +68,8 @@ SWOS_FIELD_MAP = FieldMap(
     port_sfp_offset="sfpo",
 
     # PoE fields (poe.b)
-    # Verified with CRS328-24P-4S+ (SwOS 2.18)
+    # Verified with CRS328-24P-4S+ (SwOS 2.18), and cross-checked against the
+    # PoE page definition in webui_reference/CSS326-24G-2S+/index.html
     poe_mode="poe",
     poe_priority="prio",
     poe_voltage="lvl",  # Voltage level config (auto/low/high)
